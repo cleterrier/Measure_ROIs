@@ -18,4 +18,5 @@
 • The second part allows you to measure all the ROIs on a single-channel stack ("Measure Intensities" macro), and to calculate intensity ratios between different ROI categories for each image, for example axon/dendrite or transfected/non-transfected ("Calculate Ratios" macro). These two macros generate ImageJ Results Tables that you can save as .txt or .csv files.
 
 Please see the detailed tutorial here:
+
 https://www.evernote.com/shard/s2/sh/78f84e1b-dff2-43cc-9050-783afb99056c/f15e650b16a83777
