@@ -4,9 +4,9 @@
 macro "Edit_Cat_ROIs" {
 	
 //	Categories=newArray("0","1","2","3","4","5","6","7");
-	Categories = newArray("Default", "Axon", "Dendrite", "Primary", "Secondary", "Tertiary", "Type 06", "Type 07", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
-	DefaultColors=newArray("magenta","red","blue","red","blue","yellow","red","green", "magenta","red","blue","red","blue","yellow","red","green");
-	CatColors=newArray("default", "red","green", "blue","yellow", "magenta", "cyan", "grey", "white", "black");
+	Categories = newArray("Default", "Axon", "Dendrite", "Primary", "Secondary", "Tertiary", "Type 06", "Type 07");
+	DefaultColors=newArray("magenta","red","blue","red","blue","yellow","red","green");
+	CatColors=newArray("default", "red","green", "blue","yellow", "magenta", "cyan", "grey");
 	
 	Dialog.create("Edit categorized ROIs");
 	Dialog.addCheckbox("Limit to a Slice Range", false);
