@@ -1,4 +1,4 @@
-##“Measure ROIs” macros set
+## “Measure ROIs” macros set
 
 ![toolbar](http://i.imgur.com/peAf4rG.png)
 
