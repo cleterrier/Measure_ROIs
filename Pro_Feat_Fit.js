@@ -932,9 +932,15 @@ function getRoiType(imp, rm, r){
 //*************************************************************************************
 // takes i+, roimanager, index, returns an array (slice label, slice number) for a given ROI
 function getSlice(imp, rm, r) {
-	var snumber = rm.getSliceNumber(rm.getName(r));
-	var stk = imp.getImageStack();
-	var sname = stk.getShortSliceLabel(snumber);
+	if (imp.getImageStackSize < 2) {	
+		var snumber = rm.getSliceNumber(rm.getName(r));
+		var stk = imp.getImageStack();
+		var sname = stk.getShortSliceLabel(snumber);	
+	}
+	else {
+		var snumber = 1;
+		var sname = imp.getTitle();
+	}
 	return [sname , snumber];
 }
 //*************************************************************************************
