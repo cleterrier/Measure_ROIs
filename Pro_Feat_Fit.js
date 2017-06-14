@@ -97,7 +97,6 @@ var FitEquationArray = new Array("GAUSSIAN_NOOFFSET", "GAUSSIAN", "GAMMA_VARIATE
 var FitEquationD = "GAUSSIAN_NOOFFSET"; // type of fit: GAUSSIAN_NOOFFSET, GAUSSIAN, GAMMA_VARIATE etc.
 
 var getAlignmentD = true; // compute aligned profiles?
-// var alignFitsD = false; // add fit curves to the alignments? need more work
 var AlignOnArray = new Array("start", "begin", "max", "fitmax", "end");
 var AlignOnD = "begin"; // choose to align on "start", "begin", "max", "fitmax", "end"
 
@@ -108,7 +107,7 @@ var AlignOnD = "begin"; // choose to align on "start", "begin", "max", "fitmax",
 
 var logProfilesD = false; // detailled log of the Profiles, Features and Fits?
 var generateFeatureROID = true; // generates feature as ROI in the Roi Manager?
-var outTypeNameD = "AIS"; // category of output ROIs 
+var outTypeNameD = "PFF"; // category of output ROIs 
 var displayOverD = true; // display overlays
 var displayPlotsD = true; // display the plots stack
 var displayResultsTableD = true; // output Results Table?
@@ -161,7 +160,7 @@ gd.addChoice("Align on", AlignOnArray, AlignOnD);
 gd.addMessage("Output parameters");
 gd.addCheckbox("Log profiles", logProfilesD);
 gd.addCheckbox("Generate ROIs", generateFeatureROID);
-gd.addStringField("Category Name", outTypeNameD, 10);
+gd.addStringField("Add to Category Name", outTypeNameD, 10);
 gd.addCheckbox("Display overlays", displayOverD);
 gd.addCheckbox("Display plots stack", displayPlotsD);
 gd.addCheckbox("Display results table", displayResultsTableD);
@@ -205,562 +204,538 @@ var SubBackground = gd.getNextBoolean();
 
 if (gd.wasOKed()) {
 
-//**************************
-// Get names, IDs, number of slices, scale, number of ROIs
-//**************************
-
-var imp = IJ.getImage();
-var StackName = imp.getTitle();
-var StackID = imp.getID();
-var StackDim = imp.getDimensions();
-var Scale = getScale(imp);
-var PxSize = Scale[0];
-var PxUnit = Scale[1];
-var rm = RoiManager.getInstance();
-var ra = rm.getRoisAsArray();
-var nroi = rm.getCount();
-
-//**************************
-// for each roi: detect category
-//**************************
-
-if (ChooseType == true) {
-	var ri = 0;
-	var tArray = new Array();
-	for (var r=0; r<nroi; r++) {
-		var currRoi = rm.getRoi(r);
-		var currType = currRoi.getProperty("TracingType");
-		var currTName = currRoi.getProperty("TypeName");
-		if (currTName == TypeName || currTName == null) {
-			tArray[ri] =  r;
-			ri++;
-		}
-	}
-}
-else {
-	var tArray = new Array();
-	for (var r=0; r<nroi; r++) {
-		tArray[r] = r;
-	}
-}
-
-nr = tArray.length;
-
-// define the Profiles array
-var AllProfiles = new Array(nr);
-var AllFeatures = new Array(nr);
-var AllFits = new Array(nr);
-var AllAligns = new Array(nr);
-
-//**************************
-// for each roi: define Profile parameters, add it to the Profile array
-//**************************
-
-for (var ar=0; ar<nr; ar++) {
-
-	r = tArray[ar];
+	//**************************
+	// Get names, IDs, number of slices, scale, number of ROIs
+	//**************************
 	
-	var Profile = new profile();
-	var Feature = new feature();
-	var Fit = new fit();
-	var Align = new align();
+	var imp = IJ.getImage();
+	var StackName = imp.getTitle();
+	var StackID = imp.getID();
+	var StackDim = imp.getDimensions();
+	var Scale = getScale(imp);
+	var PxSize = Scale[0];
+	var PxUnit = Scale[1];
+	var rm = RoiManager.getInstance();
+	var ra = rm.getRoisAsArray();
+	var nroi = rm.getCount();
 	
+	//**************************
+	// for each roi: detect category
+	//**************************
 	
-	Profile.PStackName = StackName;
-	Profile.PStackID = StackID;
-	
-	Profile.PPxSize = PxSize;
-	Profile.PPxUnit = PxUnit;
-
-	Profile.PRoiName = rm.getName(r);
-	Profile.PRoiIndex = r;
-	
-	var RoiType = getRoiType(imp, rm, r);
-	Profile.PRoiLabel = RoiType[0];
-	Profile.PRoiType = RoiType[1];
-	Profile.PRoiColor = RoiType[2]
-	
-	var Slice = getSlice(imp, rm, r);
-	Profile.PSliceName = Slice[0];
-	Profile.PSliceNumber = Slice[1];
-
-	if (SubBackground == true) Profile.PBackground = getBackground(imp, rm, r);	
-	Profile.PWidth = StackDim[0];
-	Profile.PHeight = StackDim[1];
-	
-	Profile.PSourceROI = getROI(imp, rm, r);
-
-	Profile.PScaledLength = getScaledLength(imp, rm, r);
-	Profile.PRawProfile = getProfile(imp, rm, ra, r, ProfileWidth);
-	Profile.PRawLength = Profile.PRawProfile.length;
-	Profile.PLineCoor = getLineCoor(Profile.PRawLength, Profile.PPxSize);
-
-	var XYFullCoor = getFullCoordinates(imp,rm, r, Profile.PRawLength);
-	var XYCoor = getCoordinates(imp,rm, r);
-	Profile.PXCoor = XYCoor[0];
-	Profile.PYCoor = XYCoor[1];
-
-	
-	
-	Profile.PRawMin = getMin(Profile.PRawProfile);
-	Profile.PRawMax = getMax(Profile.PRawProfile);
-
-	Profile.PRawMeanInt = getMeanIntensity(Profile.PRawProfile);
-	Profile.PRawIntDens = getRawIntegratedDensity(Profile.PRawProfile);
-
-	Profile.PHalfWidth = HalfWidth;
-	Profile.PSmoothProfile = getSmoothProfile(Profile.PRawProfile, Profile.PHalfWidth);
-	Profile.PSmoothMin = getMin(Profile.PSmoothProfile);
-	Profile.PSmoothMax = getMax(Profile.PSmoothProfile);
-	Profile.PSmoothMaxIndex = getMaxIndex(Profile.PSmoothProfile);
-	Profile.PSmoothMaxIndexScaled = Profile.PLineCoor[Profile.PSmoothMaxIndex];
-
-	Profile.PNormProfile = getNormalizedProfile(Profile.PSmoothProfile, Profile.PSmoothMin, Profile.PSmoothMax);
-	Profile.PRawNormProfile = getNormalizedProfile(Profile.PRawProfile, Profile.PSmoothMin, Profile.PSmoothMax);
-
-	Profile.PRawNormMin = getMin(Profile.PRawNormProfile);
-	Profile.PRawNormMax = getMax(Profile.PRawNormProfile);
-
-	Profile.PHasFeatures = false; 
-	Profile.PHasFits = false;
-	Profile.hasAlignment = false;
-
-
-// Compute Features on the Profile	
-	if (getFeature == true) {
-
-		Profile.PHasFeatures = true;
-
-		Feature.FProfileIndex = r;
-		
-		var FBegin = getFBegin(Profile, beginThreshold);
-		if (FeatureType == "small") {
-			Feature.FBeginIndex = FBegin[0];
-			Feature.FScaledBegin = FBegin[1];
-		}
-		else if (FeatureType == "large") {
-			Feature.FBeginIndex = FBegin[2];
-			Feature.FScaledBegin = FBegin[3];
-		}
-		
-		var FEnd = getFEnd(Profile, endThreshold);
-		if (FeatureType == "small") {
-			Feature.FEndIndex = FEnd[0];
-			Feature.FScaledEnd = FEnd[1];
-		}
-		else if (FeatureType == "large") {
-			Feature.FEndIndex = FEnd[2];
-			Feature.FScaledEnd = FEnd[3];
-		}
-
-		Feature.FRawLength = Feature.FEndIndex - Feature.FBeginIndex;
-		Feature.FScaledLength = Feature.FScaledEnd - Feature.FScaledBegin;
-		
-		Feature.FMeanInt = getMeanSub(Profile.PRawProfile, Feature.FBeginIndex, Feature.FEndIndex);
-		Feature.FMiCor = Feature.FMeanInt - Profile.PBackground;
-
-		Feature.FxCoor = getSub(Profile.PXCoor, Feature.FBeginIndex, Feature.FEndIndex);
-		Feature.FyCoor = getSub(Profile.PYCoor, Feature.FBeginIndex, Feature.FEndIndex);
-
-	}
-
-
-// Compute Fit of the Profile
-	if (getFit == true) {
-		Profile.PHasFits = true;
-
-		Fit.TProfileIndex = r;
-
-		Fit.TEqType = FitEquation;
-		Fit.TFit = doProfileFit(Profile, FitYSource, FitEquation);
-		Fit.TFitX = Fit.TFit.getXPoints();
-		Fit.TFitY = Fit.TFit.getYPoints();
-		Fit.TParameters = Fit.TFit.getParams();
-		Fit.TRSquared = Fit.TFit.getRSquared();
-		Fit.TCurve = new Array(Fit.TFitX.length);
-		for (var i = 0; i < Fit.TFitX.length; i++) Fit.TCurve[i] = Fit.TFit.f(Fit.TParameters, Fit.TFitX[i]);
-		Fit.TCurveMax = getMax(Fit.TCurve);
-		Fit.TCurveMaxIndex = getMaxIndex(Fit.TCurve);
-		Fit.TCurveMin = getMin(Fit.TCurve);
-		Fit.TNormCurve = getNormalizedProfile(Fit.TCurve, Fit.TCurveMin, Fit.TCurveMax);
-
-	}
-
-	AllProfiles[ar] = Profile;
-	AllFeatures[ar] = Feature;
-	AllFits[ar] = Fit;
-	AllAligns[ar] = Align;
-
-	if (logProfiles == true) {
-		var ProfileLog = printProfile(Profile, Feature, Fit);
-		IJ.log(ProfileLog);
-	}
-}
-
-//*************************************************************************************
-// Compute Alignment of Profiles
-//*************************************************************************************
-
-
-if (getAlignment == true) {
-
-	MasterLength = getAllValues("PRawLength", AllProfiles);
-	
-	if (AlignOn == "start") {
-		var MasterPos = new Array (AllProfiles.length);
-		for (var i = 0; i < AllProfiles.length; i++) MasterPos[i] = 0;
-	}
-	else if (AlignOn == "begin") {
-		var MasterPos = getAllValues("FBeginIndex", AllFeatures);
-	}
-	else if (AlignOn == "max") {
-		var MasterPos = getAllValues("PSmoothMaxIndex", AllProfiles);
-	}
-	else if (AlignOn == "fitmax") {
-		var MasterPos = getAllValues("TCurveMaxIndex", AllFits); 
-	}
-	else if (AlignOn == "end") {
-		var MasterPos = getAllValues("FEndIndex", AllFeatures);
-	}
-	
-	var MaxShiftLeft = getMax(MasterPos);
-	var MaxShiftRight = getMaxDiff(MasterLength, MasterPos);
-	var AlignLength = MaxShiftLeft + MaxShiftRight;
-	
-	var AlignX = getLineCoor(AlignLength, 1);
- 
-	for (var r = 0; r < AllProfiles.length; r++) {
-		
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		var Fit = AllFits[r];
-		var Align = AllAligns[r];		
-
-		Align.AProfileIndex = r;
-		Align.AMasterPos = MasterPos[r];
-		
-		if (isNaN(Align.AMasterPos) == false) {
-						
-			Profile.PHasAlignment = true;
-	
-			Align.AShiftLeft = MaxShiftLeft - MasterPos[r];
-			Align.AShiftRight = MaxShiftRight - (Profile.PRawLength - MasterPos[r]);
-					
-			Align.AXScaled = getLineShiftCoor(AlignLength, Profile.PPxSize, MaxShiftLeft);
-			Align.ARawProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PRawProfile);
-			Align.ASmoothProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PSmoothProfile);
-			Align.ANormProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PNormProfile);
-			Align.ARawNormProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PRawNormProfile);
-			
-			if (Profile.hasFits == true) {		
-				Align.ACurve = getAlignY(Align.AShiftLeft, Align.AShiftRight, Fit.TCurve);
-				Align.ANormCurve = getAlignY(Align.AShiftLeft, Align.AShiftRight, Fit.TNormCurve);
+	if (ChooseType == true) {
+		var ri = 0;
+		var tArray = new Array();
+		for (var r=0; r<nroi; r++) {
+			var currRoi = rm.getRoi(r);
+			var currType = currRoi.getProperty("TracingType");
+			var currTName = currRoi.getProperty("TypeName");
+			if (currTName == TypeName || currTName == null) {
+				tArray[ri] =  r;
+				ri++;
 			}
+		}
+	}
+	else {
+		var tArray = new Array();
+		for (var r=0; r<nroi; r++) {
+			tArray[r] = r;
+		}
+	}
+	
+	nr = tArray.length;
+	
+	// define the Profiles array
+	var AllProfiles = new Array(nr);
+	var AllFeatures = new Array(nr);
+	var AllFits = new Array(nr);
+	var AllAligns = new Array(nr);
+	
+	//**************************
+	// for each roi: define Profile parameters, add it to the Profile array
+	//**************************
+	
+	for (var ar=0; ar<nr; ar++) {
+	
+		r = tArray[ar];
+		
+		var Profile = new profile();
+		var Feature = new feature();
+		var Fit = new fit();
+		var Align = new align();
+		
+		
+		Profile.PStackName = StackName;
+		Profile.PStackID = StackID;
+		
+		Profile.PPxSize = PxSize;
+		Profile.PPxUnit = PxUnit;
+	
+		Profile.PRoiName = rm.getName(r);
+		Profile.PRoiIndex = r;
+		
+		var RoiType = getRoiType(imp, rm, r);
+		Profile.PRoiLabel = RoiType[0];
+		Profile.PRoiType = RoiType[1];
+		Profile.PRoiColor = RoiType[2]
+		Profile.PRoiWidth = ProfileWidth;
+		
+		var Slice = getSlice(imp, rm, r);
+		Profile.PSliceName = Slice[0];
+		Profile.PSliceNumber = Slice[1];
+	
+		if (SubBackground == true) Profile.PBackground = getBackground(imp, rm, r);	
+		Profile.PWidth = StackDim[0];
+		Profile.PHeight = StackDim[1];
+		
+		Profile.PSourceROI = getROI(imp, rm, r);
+	
+		Profile.PScaledLength = getScaledLength(imp, rm, r);
+		Profile.PRawProfile = getProfile(imp, rm, ra, r, ProfileWidth);
+		Profile.PRawLength = Profile.PRawProfile.length;
+		Profile.PLineCoor = getLineCoor(Profile.PRawLength, Profile.PPxSize);
+	
+		var XYFullCoor = getFullCoordinates(imp,rm, r, Profile.PRawLength);
+		var XYCoor = getCoordinates(imp,rm, r);
+		Profile.PXCoor = XYCoor[0];
+		Profile.PYCoor = XYCoor[1];
+	
+		
+		
+		Profile.PRawMin = getMin(Profile.PRawProfile);
+		Profile.PRawMax = getMax(Profile.PRawProfile);
+	
+		Profile.PRawMeanInt = getMeanIntensity(Profile.PRawProfile);
+		Profile.PRawIntDens = getRawIntegratedDensity(Profile.PRawProfile);
+	
+		Profile.PHalfWidth = HalfWidth;
+		Profile.PSmoothProfile = getSmoothProfile(Profile.PRawProfile, Profile.PHalfWidth);
+		Profile.PSmoothMin = getMin(Profile.PSmoothProfile);
+		Profile.PSmoothMax = getMax(Profile.PSmoothProfile);
+		Profile.PSmoothMaxIndex = getMaxIndex(Profile.PSmoothProfile);
+		Profile.PSmoothMaxIndexScaled = Profile.PLineCoor[Profile.PSmoothMaxIndex];
+	
+		Profile.PNormProfile = getNormalizedProfile(Profile.PSmoothProfile, Profile.PSmoothMin, Profile.PSmoothMax);
+		Profile.PRawNormProfile = getNormalizedProfile(Profile.PRawProfile, Profile.PSmoothMin, Profile.PSmoothMax);
+	
+		Profile.PRawNormMin = getMin(Profile.PRawNormProfile);
+		Profile.PRawNormMax = getMax(Profile.PRawNormProfile);
+	
+		Profile.PHasFeature = false; 
+		Profile.PHasFits = false;
+		Profile.hasAlignment = false;
+	
+	
+	// Compute Features on the Profile	
+		if (getFeature == true) {
+	
+			Profile.PHasFeature = true;
+	
+			Feature.FProfileIndex = r;
+			
+			var FBegin = getFBegin(Profile, beginThreshold);
+			if (FeatureType == "small") {
+				Feature.FBeginIndex = FBegin[0];
+				Feature.FScaledBegin = FBegin[1];
+			}
+			else if (FeatureType == "large") {
+				Feature.FBeginIndex = FBegin[2];
+				Feature.FScaledBegin = FBegin[3];
+			}
+			
+			var FEnd = getFEnd(Profile, endThreshold);
+			if (FeatureType == "small") {
+				Feature.FEndIndex = FEnd[0];
+				Feature.FScaledEnd = FEnd[1];
+			}
+			else if (FeatureType == "large") {
+				Feature.FEndIndex = FEnd[2];
+				Feature.FScaledEnd = FEnd[3];
+			}
+	
+			Feature.FRawLength = Feature.FEndIndex - Feature.FBeginIndex;
+			if (isNaN(Feature.FRawLength) == true) {
+				Profile.PHasFeature = false;
+			}
+			Feature.FScaledLength = Feature.FScaledEnd - Feature.FScaledBegin;
+			
+			Feature.FMeanInt = getMeanSub(Profile.PRawProfile, Feature.FBeginIndex, Feature.FEndIndex);
+			Feature.FMiCor = Feature.FMeanInt - Profile.PBackground;
+	
+			Feature.FxCoor = getSub(Profile.PXCoor, Feature.FBeginIndex, Feature.FEndIndex);
+			Feature.FyCoor = getSub(Profile.PYCoor, Feature.FBeginIndex, Feature.FEndIndex);
+	
+		}
+	
+	
+	// Compute Fit of the Profile
+		if (getFit == true) {
+			Profile.PHasFits = true;
+	
+			Fit.TProfileIndex = r;
+	
+			Fit.TEqType = FitEquation;
+			Fit.TFit = doProfileFit(Profile, FitYSource, FitEquation);
+			Fit.TFitX = Fit.TFit.getXPoints();
+			Fit.TFitY = Fit.TFit.getYPoints();
+			Fit.TParameters = Fit.TFit.getParams();
+			Fit.TRSquared = Fit.TFit.getRSquared();
+			Fit.TCurve = new Array(Fit.TFitX.length);
+			for (var i = 0; i < Fit.TFitX.length; i++) Fit.TCurve[i] = Fit.TFit.f(Fit.TParameters, Fit.TFitX[i]);
+			Fit.TCurveMax = getMax(Fit.TCurve);
+			Fit.TCurveMaxIndex = getMaxIndex(Fit.TCurve);
+			Fit.TCurveMin = getMin(Fit.TCurve);
+			Fit.TNormCurve = getNormalizedProfile(Fit.TCurve, Fit.TCurveMin, Fit.TCurveMax);
+	
+		}
+	
+		AllProfiles[ar] = Profile;
+		AllFeatures[ar] = Feature;
+		AllFits[ar] = Fit;
+		AllAligns[ar] = Align;
+	
+		if (logProfiles == true) {
+			var ProfileLog = printProfile(Profile, Feature, Fit);
+			IJ.log(ProfileLog);
+		}
+	}
+	
+	//*************************************************************************************
+	// Compute Alignment of Profiles
+	//*************************************************************************************
+	
+	
+	if (getAlignment == true) {
+	
+		MasterLength = getAllValues("PRawLength", AllProfiles);
+		
+		if (AlignOn == "start") {
+			var MasterPos = new Array (AllProfiles.length);
+			for (var i = 0; i < AllProfiles.length; i++) MasterPos[i] = 0;
+		}
+		else if (AlignOn == "begin") {
+			var MasterPos = getAllValues("FBeginIndex", AllFeatures);
+		}
+		else if (AlignOn == "max") {
+			var MasterPos = getAllValues("PSmoothMaxIndex", AllProfiles);
+		}
+		else if (AlignOn == "fitmax") {
+			var MasterPos = getAllValues("TCurveMaxIndex", AllFits); 
+		}
+		else if (AlignOn == "end") {
+			var MasterPos = getAllValues("FEndIndex", AllFeatures);
+		}
+		
+		var MaxShiftLeft = getMax(MasterPos);
+		var MaxShiftRight = getMaxDiff(MasterLength, MasterPos);
+		var AlignLength = MaxShiftLeft + MaxShiftRight;
+		
+		var AlignX = getLineCoor(AlignLength, 1);
+	 
+		for (var r = 0; r < AllProfiles.length; r++) {
+			
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			var Fit = AllFits[r];
+			var Align = AllAligns[r];		
+	
+			Align.AProfileIndex = r;
+			Align.AMasterPos = MasterPos[r];
+			
+			if (isNaN(Align.AMasterPos) == false) {
+							
+				Profile.PHasAlignment = true;
+		
+				Align.AShiftLeft = MaxShiftLeft - MasterPos[r];
+				Align.AShiftRight = MaxShiftRight - (Profile.PRawLength - MasterPos[r]);
+						
+				Align.AXScaled = getLineShiftCoor(AlignLength, Profile.PPxSize, MaxShiftLeft);
+				Align.ARawProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PRawProfile);
+				Align.ASmoothProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PSmoothProfile);
+				Align.ANormProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PNormProfile);
+				Align.ARawNormProfile = getAlignY(Align.AShiftLeft, Align.AShiftRight, Profile.PRawNormProfile);
 				
-			AllProfiles[r] = Profile;
-			AllAligns[r] = Align;
-		}
-
-		else {
-			Profile.PHasAlignment = false;
-			AllProfiles[r] = Profile;
-		}		
-	
-	if (logProfiles == true) {
-		var AlignLog = printAlign(Profile, Feature, Fit, Align);
-		IJ.log(AlignLog);
-	}
-	
-	}			
-}
-
-
-
-//**************************
-// Output part
-//**************************
-
-
-var outName = StackName + "_PFF(w" + ProfileWidth + ",h" + HalfWidth; 
-if (getFeature == true) outName += ",b" + beginThreshold + ",e" + endThreshold + "," + FeatureType;
-if (getAlignment == true) outName += ",a" + AlignOn;
-outName += ")";
-
-
-//*************************************************************************************
-// Output 1: Generate Feature ROI
-//*************************************************************************************
-
-// For each Profile, if options are valid, generate the Feature ROI
-
-if (generateFeatureROI == true) {
-	
-	for (var r = 0; r < AllProfiles.length; r++) {
-	
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		
-		// Generate the feature roi
-	
-		if (getFeature == true && Double.isNaN(Feature.FMiCor) == false) {
-			
-			var Froi = new PolygonRoi(convertArrayF(Feature.FxCoor), convertArrayF(Feature.FyCoor), Feature.FxCoor.length, Roi.POLYLINE);
-			imp.setSlice(Profile.PSliceNumber);
-
-			Froi.setProperty("TracingType", "P");
-			Froi.setProperty("TypeName", outTypeName);
-			Froi.setStrokeColor(Profile.PRoiColor);	
-			rm.addRoi(Froi);
-
-			
-			// Delete source ROI
-			var sourceIndex = Profile.PRoiIndex;
-			rm.select(sourceIndex - r);
-			rm.runCommand("Delete");
-						
-
-			// Rename output ROI
-			rm.select(rm.getCount()-1);
-			var sourceName = Profile.PRoiName;
-			var sourceParts = sourceName.split("-");
-			var destName = sourceParts[0] + "-" + sourceParts[1] + "-" + sourceParts[2] + "-P-" + outTypeName;
-			rm.runCommand("Rename", destName);
-			var rmrois = rm.getSelectedRoisAsArray();
-			Froi = rmrois[0];
-			AllFeatures[r].FROI = Froi;			
-		}
-		 
-		else if (Double.isNaN(Feature.FMiCor) == true) {
-		 	
-			// Delete source ROI
-			var sourceIndex = Profile.PRoiIndex;
-			rm.select(sourceIndex - r);
-			rm.runCommand("Delete");		
-		}
-	}
-
-	rm.runCommand("Sort");
-}
-
-//*************************************************************************************
-// Output 2: Plots of Profile, Feature & Fit
-//*************************************************************************************
-
-if (displayPlots == true) {	
-	var AllProfilePlots = new Array(nroi);
-	var plotStacks = new ImageStack(plotSizeX, plotSizeY);
-	
-	// Looks for max and min of all plots to unify plot scale accross all features
-	var plotMaxX = getMaxValue("PScaledLength", AllProfiles);
-	var plotMinY = getMinValue("PRawMin", AllProfiles);
-	var plotMaxY = getMaxValue("PRawMax", AllProfiles);
-	
-	// Log the plots limits
-	// IJ.log("plotMaxX=" + plotMaxX + ", plotMinY=" + plotMinY + ", plotMaxY=" + plotMaxY);
-	
-	// For each Profile, generate the profile plot, and add a slice to the Profiles image stack
-	for (var r = 0; r < AllProfiles.length; r++) {	
-	
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		var Fit = AllFits[r];
-	
-		// generate the profile plot: add the profile and the feature points, get the ip	
-		if (ScalePlots == true) plotMaxY = Profile.PRawMax * 1.1;
-		else plotMaxY = plotMaxY * 1.2;
-		var prfPlot = new Plot("Profiles", Profile.PPxUnit, "intensity", convertArrayD(Profile.PLineCoor), Profile.PRawProfile);
-		prfPlot.setSize(plotSizeX, plotSizeY);
-		prfPlot.setLimits(0, plotMaxX, plotMinY, plotMaxY);
-		prfPlot = addProfilePlot(Profile, prfPlot);
-		if (getFeature == true) prfPlot = addFPlot(Profile, Feature, prfPlot)
-		if (getFit == true) prfPlot = addFitPlot(Profile, Feature, Fit, prfPlot);
-		prfPlot.draw;
-		AllProfilePlots[r] = prfPlot;
-		var PlotP = prfPlot.getProcessor();
-		plotStacks.addSlice(Profile.PSliceName + ":" + Profile.PRoiName, PlotP);
-	}
-
-	// i+ from the Profiles image stack
-	var plotImp = new ImagePlus(outName + "_Plots", plotStacks);
-	// show the plots
-	plotImp.show();
-		
-}
-
-//*************************************************************************************
-// Output 3: Overlay of features
-//*************************************************************************************
-
-if (displayOver == true) {
-	// Initialize the overlay
-	var over = new Overlay();	
-
-	// For each Profile, generate the profile plot, and add a slice to the Profiles image stack
-	for (var r = 0; r < AllProfiles.length; r++) {	
-	
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		var Fit = AllFits[r];
-		
-		// generate the overlay: snake around the line trace and feature points
-		over = addOutlineToOverlay(Profile, over, ProfileWidth, "stack");
-		if (getFeature == true) over = addFToOverlay(Profile, Feature, over, "stack");
-	}
-	imp.setOverlay(over);	
-}
-
-
-//*************************************************************************************
-// Output 4: Results Tables
-//*************************************************************************************
-
-if (displayResultsTable == true) {
-	// Initialize the Results Table
-	var rt = new ResultsTable();
-	var row = -1;
-	
-	for (var r = 0; r < AllProfiles.length; r++) {
-
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		var Fit = AllFits[r];
-		
-		//log to Results Table
-		rt.incrementCounter();
-		row++;
-	
-		var fullName = Profile.PStackName + ":" + Profile.PRoiName+ ":" + Profile.PSliceName ;
-		
-		rt.setValue("Stack", row, Profile.PStackName);
-		rt.setValue("Slice #", row, "" + Profile.PSliceNumber);
-		rt.setValue("Slice", row, Profile.PSliceName);
-		rt.setValue("Roi #", row, "" + Profile.PRoiIndex);
-		rt.setValue("Roi", row, Profile.PRoiName);
-		rt.setValue("Length", row, Profile.PRawLength);
-		rt.setValue("Max", row, Profile.PRawMax);
-		rt.setValue("Mean Int", row, Profile.PRawMeanInt);
-		
-	if (getFeature == true) {
-		rt.setValue("F Begin", row, Feature.FScaledBegin);
-		rt.setValue("F Max", row, Profile.PSmoothMaxIndexScaled);
-		rt.setValue("F End", row, Feature.FScaledEnd);
-		rt.setValue("F length", row, Feature.FScaledLength);
-		rt.setValue("F Mean", row, Feature.FMeanInt);
-		rt.setValue("F background", row, Profile.PBackground);
-		if (SubBackground == true) rt.setValue("F corr Mean", row, Feature.FMiCor);
-		}
-	
-	if (getFit == true) {
-		for (var i = 0; i < Fit.TParameters.length; i++) {
-			rt.setValue("Fit " + letters[i], row, Fit.TParameters[i]);
-		}
-		rt.setValue("Fit R2", row, Fit.TRSquared);
-		}
-	}
-	
-	// show the Results Table
-	rt.show(outName + "_Results");
-}
-
-//*************************************************************************************
-// Output 5: Profile Tables
-//*************************************************************************************
-
-if (displayProfilesTable == true) {
-	// Initialize the Profiles Table
-	var pt = new ResultsTable();
-	var maxRawLength = getMaxValue("PRawLength", AllProfiles);
-	
-	var Profile = AllProfiles[0];
-	var scaleX = Profile.PPxSize;
-	for (var p = 0; p < maxRawLength; p++) {	
-		pt.setValue("Scaled X", p, p * scaleX);
-	}
-	
-	for (var r = 0; r < AllProfiles.length; r++) {
-
-		var Profile = AllProfiles[r];
-		var Feature = AllFeatures[r];
-		var Fit = AllFits[r];
-		
-		for (p = 0; p < Profile.PNormProfile.length; p++) {
-			var stringValue = "Profile.P" + ProfileType + "[p]"; // uses ProfileType to choose which profile to output
-			var pValue = eval(stringValue);
-			if (SubBackground == true) {
-				if (ProfileType == "RawProfile" || ProfileType == "SmoothProfile") pValue = pValue - Profile.PBackground;			
+				if (Profile.hasFits == true) {		
+					Align.ACurve = getAlignY(Align.AShiftLeft, Align.AShiftRight, Fit.TCurve);
+					Align.ANormCurve = getAlignY(Align.AShiftLeft, Align.AShiftRight, Fit.TNormCurve);
+				}
+					
+				AllProfiles[r] = Profile;
+				AllAligns[r] = Align;
 			}
-			pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
+	
+			else {
+				Profile.PHasAlignment = false;
+				AllProfiles[r] = Profile;
+			}		
+		
+		if (logProfiles == true) {
+			var AlignLog = printAlign(Profile, Feature, Fit, Align);
+			IJ.log(AlignLog);
 		}
-		for (p = Profile.PNormProfile.length; p < maxRawLength; p++) {
-			pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Number.NaN);
+		
+		}			
+	}
+	
+	
+	
+	//**************************
+	// Output part
+	//**************************
+	
+	
+	var outName = StackName + "_PFF(w" + ProfileWidth + ",h" + HalfWidth; 
+	if (getFeature == true) outName += ",b" + beginThreshold + ",e" + endThreshold + "," + FeatureType;
+	if (getAlignment == true) outName += ",a" + AlignOn;
+	outName += ")";
+	
+	
+	//*************************************************************************************
+	// Output 1: Generate Feature ROI
+	//*************************************************************************************
+	
+	// For each Profile, if options are valid, generate the Feature ROI
+	
+	if (generateFeatureROI == true) {
+		
+		for (var r = 0; r < AllProfiles.length; r++) {
+		
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			
+			// Generate the feature roi
+			
+			if (Profile.PHasFeature == true) {
+				
+				var Froi = new PolygonRoi(convertArrayF(Feature.FxCoor), convertArrayF(Feature.FyCoor), Feature.FxCoor.length, Roi.POLYLINE);
+				imp.setSlice(Profile.PSliceNumber);
+	
+				Froi.setProperty("TracingType", Profile.PRoiLabel);
+				Froi.setProperty("TypeName", Profile.PRoiType + "_" + outTypeName);
+				Froi.setStrokeColor(Profile.PRoiColor);
+				Froi.setStrokeWidth(Profile.PRoiWidth);			
+	
+				rm.addRoi(Froi);
+				
+				// Delete source ROI
+				var sourceIndex = Profile.PRoiIndex;
+				rm.select(sourceIndex - r);
+				rm.runCommand("Delete");
+									
+				// Rename output ROI
+				rm.select(rm.getCount()-1);
+				var sourceName = Profile.PRoiName;
+				var sourceParts = sourceName.split("-");
+				var destName = sourceParts[0] + "-" + sourceParts[1] + "-" + sourceParts[2] + "-" + Profile.PRoiLabel + "-" + Profile.PRoiType + "_" + outTypeName;
+				rm.runCommand("Rename", destName);			
+				var rmrois = rm.getSelectedRoisAsArray();
+				Froi = rmrois[0];
+
+				// Store feature ROI
+				Feature.FRoi = Froi;
+	
+			}
+			 
+			else {
+				// Delete source ROI
+				var sourceIndex = Profile.PRoiIndex;
+				rm.select(sourceIndex - r);
+				rm.runCommand("Delete");				
+			}
+		}	
+		rm.runCommand("Sort");
+	}
+	
+	//*************************************************************************************
+	// Output 2: Plots of Profile, Feature & Fit
+	//*************************************************************************************
+	
+	if (displayPlots == true) {	
+		var AllProfilePlots = new Array(nroi);
+		var plotStacks = new ImageStack(plotSizeX, plotSizeY);
+		
+		// Looks for max and min of all plots to unify plot scale accross all features
+		var plotMaxX = getMaxValue("PScaledLength", AllProfiles);
+		var plotMinY = getMinValue("PRawMin", AllProfiles);
+		var plotMaxY = getMaxValue("PRawMax", AllProfiles);
+		
+		// Log the plots limits
+		// IJ.log("plotMaxX=" + plotMaxX + ", plotMinY=" + plotMinY + ", plotMaxY=" + plotMaxY);
+		
+		// For each Profile, generate the profile plot, and add a slice to the Profiles image stack
+		for (var r = 0; r < AllProfiles.length; r++) {	
+		
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			var Fit = AllFits[r];
+		
+			// generate the profile plot: add the profile and the feature points, get the ip	
+			if (ScalePlots == true) plotMaxY = Profile.PRawMax * 1.1;
+			else plotMaxY = plotMaxY * 1.2;
+			var prfPlot = new Plot("Profiles", Profile.PPxUnit, "intensity", convertArrayD(Profile.PLineCoor), Profile.PRawProfile);
+			prfPlot.setSize(plotSizeX, plotSizeY);
+			prfPlot.setLimits(0, plotMaxX, plotMinY, plotMaxY);
+			prfPlot = addProfilePlot(Profile, prfPlot);
+			if (getFeature == true) prfPlot = addFPlot(Profile, Feature, prfPlot)
+			if (getFit == true) prfPlot = addFitPlot(Profile, Feature, Fit, prfPlot);
+			prfPlot.draw;
+			AllProfilePlots[r] = prfPlot;
+			var PlotP = prfPlot.getProcessor();
+			plotStacks.addSlice(Profile.PSliceName + ":" + Profile.PRoiName, PlotP);
+		}
+	
+		// i+ from the Profiles image stack
+		var plotImp = new ImagePlus(outName + "_Plots", plotStacks);
+		// show the plots
+		plotImp.show();
+			
+	}
+	
+	//*************************************************************************************
+	// Output 3: Overlay of features
+	//*************************************************************************************
+	
+	if (displayOver == true) {
+		// Initialize the overlay
+		var over = new Overlay();	
+	
+		// For each Profile, generate the profile plot, and add a slice to the Profiles image stack
+		for (var r = 0; r < AllProfiles.length; r++) {	
+		
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			var Fit = AllFits[r];
+			
+			// generate the overlay: snake around the line trace and feature points
+			over = addOutlineToOverlay(Profile, over, ProfileWidth, "stack");
+			if (getFeature == true) over = addFToOverlay(Profile, Feature, over, "stack");
+		}
+		imp.setOverlay(over);	
+	}
+	
+	
+	//*************************************************************************************
+	// Output 4: Results Tables
+	//*************************************************************************************
+	
+	if (displayResultsTable == true) {
+		// Initialize the Results Table
+		var rt = new ResultsTable();
+		var row = -1;
+		
+		for (var r = 0; r < AllProfiles.length; r++) {
+	
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			var Fit = AllFits[r];
+			
+			//log to Results Table
+			rt.incrementCounter();
+			row++;
+		
+			var fullName = Profile.PStackName + ":" + Profile.PRoiName+ ":" + Profile.PSliceName ;
+			
+			rt.setValue("Stack", row, Profile.PStackName);
+			rt.setValue("Slice #", row, "" + Profile.PSliceNumber);
+			rt.setValue("Slice", row, Profile.PSliceName);
+			rt.setValue("Roi #", row, "" + Profile.PRoiIndex);
+			rt.setValue("Roi", row, Profile.PRoiName);
+			rt.setValue("Length", row, Profile.PRawLength);
+			rt.setValue("Max", row, Profile.PRawMax);
+			
+			if (getFeature == true) {
+				rt.setValue("F Begin", row, Feature.FScaledBegin);
+				rt.setValue("F Max", row, Profile.PSmoothMaxIndexScaled);
+				rt.setValue("F End", row, Feature.FScaledEnd);
+				rt.setValue("F length", row, Feature.FScaledLength);
+			
+			if (getFit == true) {
+				for (var i = 0; i < Fit.TParameters.length; i++) {
+					rt.setValue("Fit " + letters[i], row, Fit.TParameters[i]);
+				}
+				rt.setValue("Fit R2", row, Fit.TRSquared);
+				}
+			}
+			
+			// show the Results Table
+			rt.show(outName + "_Results");
 		}
 	}
-	// show the Profiles Table
-	pt.show(outName + "_" + ProfileType + "s");
-
-}
-
-
-//*************************************************************************************
-// Output 6: Alignment Tables
-//*************************************************************************************
-
-if (getAlignment == true && displayAlignedTable == true) {
-	// Initialize the Alignment Table
-	var at = new ResultsTable();
-
-	// make a column with scaled X
-	makeAlignXScaled(AllAligns, at);
-
-	// make a column with each alignment (type chosen by ProfileType, background-subtracted as an option)
-	for (var r = 0; r < AllAligns.length; r++) {
-		var Profile = AllProfiles[r];	
-		if (Profile.PHasAlignment == true) {
-			var Align = AllAligns[r];
-			for (var p = 0; p < AlignLength; p++) {
-				var stringValue = "Align.A" + ProfileType + "[p]";
+		
+	
+	//*************************************************************************************
+	// Output 5: Profile Tables
+	//*************************************************************************************
+	
+	if (displayProfilesTable == true) {
+		// Initialize the Profiles Table
+		var pt = new ResultsTable();
+		var maxRawLength = getMaxValue("PRawLength", AllProfiles);
+		
+		var Profile = AllProfiles[0];
+		var scaleX = Profile.PPxSize;
+		for (var p = 0; p < maxRawLength; p++) {	
+			pt.setValue("Scaled X", p, p * scaleX);
+		}
+		
+		for (var r = 0; r < AllProfiles.length; r++) {
+	
+			var Profile = AllProfiles[r];
+			var Feature = AllFeatures[r];
+			var Fit = AllFits[r];
+			
+			for (p = 0; p < Profile.PNormProfile.length; p++) {
+				var stringValue = "Profile.P" + ProfileType + "[p]"; // uses ProfileType to choose which profile to output
 				var pValue = eval(stringValue);
 				if (SubBackground == true) {
 					if (ProfileType == "RawProfile" || ProfileType == "SmoothProfile") pValue = pValue - Profile.PBackground;			
-				}			
-				at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
-			}		
-		}
-		else {
-			for (var p = 0; p < AlignLength; p++) {
-				at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Double.NaN);
-			}
-			
-		}
-
-	}
-	// show the Alignment Table
-	at.show(outName + "_" + ProfileType + "s_Alignments");
-
-
-	/* does not work
-	// make a table with Fits (ANormCurve)
-	if (alignFits == true) {
-		// Initialize the Alignment Table
-		var ft = new ResultsTable();		
-		for (var r = 0; r < AllAligns.length; r++) {
-	
-			var Profile = AllProfiles[r];
-			var Fit = AllFits[r];
-			var Align = AllAligns[r];
-			if (isNaN(Align.AMasterPos) == false) {	
-				for (var p = 0; p < Align.ANormCurve.length; p++) {
-					ft.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Align.ANormCurve[p]);
 				}
+				pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
+			}
+			for (p = Profile.PNormProfile.length; p < maxRawLength; p++) {
+				pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Number.NaN);
 			}
 		}
-	// show the Fit Alignment Table
-	at.show(outName + + "_NormCurves_FitAlign");
-	}	
-	*/
-
-}
-
+		// show the Profiles Table
+		pt.show(outName + "_" + ProfileType + "s");
+	
+	}
+	
+	
+	//*************************************************************************************
+	// Output 6: Alignment Tables
+	//*************************************************************************************
+	
+	if (getAlignment == true && displayAlignedTable == true) {
+		// Initialize the Alignment Table
+		var at = new ResultsTable();
+	
+		// make a column with scaled X
+		makeAlignXScaled(AllAligns, at);
+	
+		// make a column with each alignment (type chosen by ProfileType, background-subtracted as an option)
+		for (var r = 0; r < AllAligns.length; r++) {
+			var Profile = AllProfiles[r];	
+			if (Profile.PHasAlignment == true) {
+				var Align = AllAligns[r];
+				for (var p = 0; p < AlignLength; p++) {
+					var stringValue = "Align.A" + ProfileType + "[p]";
+					var pValue = eval(stringValue);
+					if (SubBackground == true) {
+						if (ProfileType == "RawProfile" || ProfileType == "SmoothProfile") pValue = pValue - Profile.PBackground;			
+					}			
+					at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
+				}		
+			}
+			else {
+				for (var p = 0; p < AlignLength; p++) {
+					at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Double.NaN);
+				}			
+			}
+		}
+		// show the Alignment Table
+		at.show(outName + "_" + ProfileType + "s_Alignments");
+	}
 }
 
 //*************************************************************************************
@@ -768,13 +743,6 @@ if (getAlignment == true && displayAlignedTable == true) {
 //*************************************************************************************
 
 IJ.log("\n*****************************************************\nProFeatFit has finished!\n*****************************************************");
-
-
-
-//*************************************************************************************
-//*************************************************************************************
-//*************************************************************************************
-
 
 
 
@@ -803,6 +771,8 @@ function convertArrayF(arr) {
 
 //*************************************************************************************
 // Utility to log Profile parameters
+//*************************************************************************************
+
 function printProfile(Profile, Feature, Fit) {
 	var logstring = "\n*** Profile data ***\n";
 	logstring += "Stack Name: " + Profile.PStackName + "\n";
@@ -837,9 +807,9 @@ function printProfile(Profile, Feature, Fit) {
 	logstring += "Raw Norm Min: " + Profile.PRawNormMin + "\n";
 	logstring += "Raw Norm Max: " + Profile.PRawNormMax + "\n";
 	
-	logstring += "\nhas Features: " + Profile.PHasFeatures + "\n";
+	logstring += "\nhas Features: " + Profile.PHasFeature + "\n";
 
-if (Profile.PHasFeatures == true) {
+if (Profile.PHasFeature == true) {
 		logstring += "Feature Begin Index: " + Feature.FBeginIndex + "\n";
 		logstring += "Feature Scaled Begin: " + Feature.FScaledBegin + "\n";
 		logstring += "Feature End Index: " + Feature.FEndIndex + "\n";
@@ -866,6 +836,7 @@ if (Profile.PHasFits == true) {
 
 //*************************************************************************************
 // Utility to log Alignment parameters
+//*************************************************************************************
 function printAlign(Profile, Feature, Fit, Align) {
 	
 	var logstring = "\n*** Alignment data ***\n";
@@ -882,6 +853,7 @@ function printAlign(Profile, Feature, Fit, Align) {
 
 //*************************************************************************************
 // Utility to print a few elements from an array + its length: takes an array, returns a string
+//*************************************************************************************
 function printArraySample(Array) {
 	if (Array.length < 2) return "*too small*";
 	var string = "[ " + Array[0] + ", " + Array[1] + ", ... , " + Array[Array.length-2] + ", " + Array[Array.length-1] + " ] (length "+ Array.length + ")";	
@@ -889,6 +861,7 @@ function printArraySample(Array) {
 }
 //*************************************************************************************
 // Utility to print all elements of an array: takes an array, returns a string
+//*************************************************************************************
 function printArrayFull(Array) {
 	var string = "[ ";
 	for (var i = 0; i < Array.length-1; i++) {
@@ -903,7 +876,9 @@ function printArrayFull(Array) {
 // Function that generate Profile parameters
 //*************************************************************************************
 
+//*************************************************************************************
 // get the scale of the image: takes an i+, returns an array with (size of a pixel, unit)
+//*************************************************************************************
 function getScale(imp){
 	var cal=imp.getCalibration();
 	var scale=cal.getX(1);
@@ -912,14 +887,7 @@ function getScale(imp){
 }
 //*************************************************************************************
 // takes roimanager, index, returns the label of the ROI as an integer (second to last number from NDF to ROI macro)
-/*function getRoiLabel(rm, r){
-	var n = rm.getName(r);
-	var na = n.split("-");
-	var lastEl = na[na.length - 2];
-	if (lastEl.length() == 1) var t = na[na.length - 1];
-		else var t = "0";
-	return parseInt(t);
-}*/
+//*************************************************************************************
 function getRoiType(imp, rm, r){
 	rm.select(imp, r);
 	var roi = imp.getRoi();
@@ -931,8 +899,9 @@ function getRoiType(imp, rm, r){
 
 //*************************************************************************************
 // takes i+, roimanager, index, returns an array (slice label, slice number) for a given ROI
+//*************************************************************************************
 function getSlice(imp, rm, r) {
-	if (imp.getImageStackSize < 2) {	
+	if (imp.getImageStackSize() > 1) {	
 		var snumber = rm.getSliceNumber(rm.getName(r));
 		var stk = imp.getImageStack();
 		var sname = stk.getShortSliceLabel(snumber);	
@@ -945,6 +914,7 @@ function getSlice(imp, rm, r) {
 }
 //*************************************************************************************
 // takes i+, roimanager, index, returns the corresponding ROI
+//*************************************************************************************
 function getROI(imp, rm, r){
 	rm.select(imp, r);
 	var roi = imp.getRoi();
@@ -953,23 +923,30 @@ function getROI(imp, rm, r){
 
 //*************************************************************************************
 // takes i+, roimanager, index, returns the scaled length of the ROI
+//*************************************************************************************
 function getScaledLength(imp, rm, r){
 	rm.select(imp, r);
 	var roi = imp.getRoi();
-	var length = roi.getLength();	
+	var length = roi.getLength();
+		
 	return length;
-}	
+}
+
+
 //*************************************************************************************
 // takes i+, roimanager, index, returns the profile along the ROI with a w width (array)
+//*************************************************************************************
 function getProfile(imp, rm, ra, r, w){
 
-// gets the roi to have the initial stroke width	
+	// gets the roi to have the initial stroke width	
 	var roi = ra[r];
 	var roiT = roi.getTypeAsString();
 	if (roiT == "Straight Line") { 
+		var iw = roi.getStrokeWidth();
 		roi.setStrokeWidth(w);
 		roi.setImage(imp);
 		var prf = roi.getPixels();
+		roi.setStrokeWidth(iw);
 		}
 	else {
 		var iw = roi.getStrokeWidth();
@@ -981,8 +958,10 @@ function getProfile(imp, rm, ra, r, w){
 		}
 	return prf;
 }
+
 //*************************************************************************************
 // takes array, returns min of the array
+//*************************************************************************************
 function getMin(prf){
 	var min = 1000000000;
 	for (var i = 0; i <prf.length; i++) {
@@ -992,6 +971,7 @@ function getMin(prf){
 }
 //*************************************************************************************
 // takes array, returns max of the array
+//*************************************************************************************
 function getMax(prf){
 	var max = 0;
 	for (var i = 0; i <prf.length; i++) {
@@ -1001,6 +981,7 @@ function getMax(prf){
 }
 //*************************************************************************************
 // takes two arrays, returns max of the difference between values along the arrays
+//*************************************************************************************
 function getMaxDiff(a1, a2){
 	var maxdif = 0;
 	for (var i = 0; i < a1.length; i++) {
@@ -1011,6 +992,7 @@ function getMaxDiff(a1, a2){
 }
 //*************************************************************************************
 // generate scaled x coordinates along the line ROI
+//*************************************************************************************
 function getLineCoor(length, scale){
 	var lc = new Array(length);
 	var m = 0;
@@ -1021,6 +1003,7 @@ function getLineCoor(length, scale){
 }
 //*************************************************************************************
 // returns mean of an array
+//*************************************************************************************
 function getMeanIntensity(prf){
 	var id = 0;
 	var l = 0;
@@ -1031,8 +1014,10 @@ function getMeanIntensity(prf){
 	var mei = id / l;
 	return mei;
 }
+
 //*************************************************************************************
 // returns the index of the max value of an array
+//*************************************************************************************
 function getMaxIndex(prf) {
 	var max = prf [0];
 	var mi = 0;
@@ -1046,6 +1031,7 @@ function getMaxIndex(prf) {
 }
 //*************************************************************************************
 // returns the sum of an array
+//*************************************************************************************
 function getRawIntegratedDensity(prf){
 	var id = 0;
 	for (var i = 0; i < prf.length; i++) {
@@ -1055,6 +1041,7 @@ function getRawIntegratedDensity(prf){
 }	
 //*************************************************************************************
 // returns a smoothened array with window half-width of h
+//*************************************************************************************
 function getSmoothProfile(prf, h) {
 	if (h==0) return prf;
 	var avrg = new Array(prf.length);
@@ -1071,6 +1058,7 @@ function getSmoothProfile(prf, h) {
 }
 //*************************************************************************************
 // returns an array normalized by min and max (to 0 and 1)
+//*************************************************************************************
 function getNormalizedProfile(prf, min, max) {
 	var norm = new Array(prf.length);
 	for (var i = 0; i < prf.length; i++) {
@@ -1080,6 +1068,7 @@ function getNormalizedProfile(prf, min, max) {
 }
 //*************************************************************************************
 // takes an i+, roimanager, index and returns an array of two arrays : x and y coordinates (no interpolation)
+//*************************************************************************************
 function getCoordinates(imp, rm, r) {
 	rm.select(imp, r);
 	var roi = imp.getRoi();
@@ -1096,6 +1085,7 @@ function getCoordinates(imp, rm, r) {
 }
 //*************************************************************************************
 // takes an i+, roimanager, index and returns an array of two arrays : x and y coordinates with 1-px interpolation
+//*************************************************************************************
 function getFullCoordinates(imp, rm, r, length) {
 	rm.select(imp, r);
 	var roi = imp.getRoi();
@@ -1113,6 +1103,7 @@ function getFullCoordinates(imp, rm, r, length) {
 
 //*************************************************************************************
 // takes an i+ and returns the mode of the histogram as background
+//*************************************************************************************
 function getBackground(imp, rm, r) {
 	rm.select(imp, r);
 	var impro = imp.getProcessor();
@@ -1132,7 +1123,10 @@ function getBackground(imp, rm, r) {
 // Functions for detection of feature begin, end and mean intensities
 // return both indexes and scaled feature positions
 //*************************************************************************************
+
+//*************************************************************************************
 // Feature begin : first (small) and last (large) point backward from max with next point below threshold
+//*************************************************************************************
 function getFBegin(Profile, t) {
 	var begin = new Array(Number.NaN, Number.NaN, Number.NaN, Number.NaN);
 	var cross = 0;
@@ -1153,6 +1147,7 @@ function getFBegin(Profile, t) {
 }
 //*************************************************************************************
 // Feature end : first (small) and last (large) point forward from max with next point below threshold
+//*************************************************************************************
 function getFEnd(Profile, t) {
 	var end = new Array(Number.NaN, Number.NaN, Number.NaN, Number.NaN);
 	var cross = 0;
@@ -1173,6 +1168,7 @@ function getFEnd(Profile, t) {
 }
 //*************************************************************************************
 // subArray mean : returns the mean of a subset from an array (from start s to end e)
+//*************************************************************************************
 function getMeanSub(a, s, e) {
 	if (Double.isNaN(s) == true || Double.isNaN(e) == true) return Number.NaN;
 	var sub = new Array(e + 1 - s);
@@ -1184,6 +1180,7 @@ function getMeanSub(a, s, e) {
 }
 //*************************************************************************************
 // subArray: returns the subset from an array (from start s to end e)
+//*************************************************************************************
 function getSub(a, s, e) {
 	if (Double.isNaN(s) == true || Double.isNaN(e) == true) return Number.NaN;
 	var sub = new Array(e + 1 - s);
@@ -1198,7 +1195,9 @@ function getSub(a, s, e) {
 // Functions for fitting
 //*************************************************************************************
 
+//*************************************************************************************
 // Perform the fit of the profile using the chosen equation, returns a CurveFitter object
+//*************************************************************************************
 function doProfileFit(Prof, yString, eqString) {
 	prfX = Prof.PLineCoor;
 	prfYString = "prfY = Prof." + yString;
@@ -1214,7 +1213,9 @@ function doProfileFit(Prof, yString, eqString) {
 // Functions that operate on the Profiles array (all Profiles)
 //*************************************************************************************
 
+//*************************************************************************************
 // takes the Profile arrays and returns all values for a given parameter as an array
+//*************************************************************************************
 function getAllValues(field, Profileset) {
 	var fa = new Array(Profileset.length);
 	for (var i = 0; i < fa.length; i++) {
@@ -1223,8 +1224,10 @@ function getAllValues(field, Profileset) {
 	}
 	return fa;
 }
+
 //*************************************************************************************
 // takes the Profile arrays and returns the min value for a given parameter across all Profiles
+//*************************************************************************************
 function getMinValue(field, Profileset) {
 	var fa = getAllValues(field, Profileset);
 	var min = fa[0];
@@ -1233,8 +1236,10 @@ function getMinValue(field, Profileset) {
 	}
 	return min;
 }
+
 //*************************************************************************************
 // takes the Profile arrays and returns the max value for a given parameter across all Profiles
+//*************************************************************************************
 function getMaxValue(field, Profileset) {
 	var fa = getAllValues(field, Profileset);
 	var max = fa[0];
@@ -1244,11 +1249,14 @@ function getMaxValue(field, Profileset) {
 	return max;
 }
 
+
 //*************************************************************************************
 // Functions that are used in the alignment
 //*************************************************************************************
 
+//*************************************************************************************
 // generate scaled x coordinates along the line ROI with 0 at Master position
+//*************************************************************************************
 function getLineShiftCoor(length, scale, pos){
 	var lc = new Array(length);
 	var m = 0;
@@ -1258,8 +1266,9 @@ function getLineShiftCoor(length, scale, pos){
 	return lc;
 }
 
-
+//*************************************************************************************
 // Generates an aligned array padded with NaN
+//*************************************************************************************
 function getAlignY(nleft, nright, prf){
 	var aa = new Array(nleft + prf.length + nright); 
 	if (isNaN(nleft) == true) {
@@ -1281,8 +1290,9 @@ function getAlignY(nleft, nright, prf){
 	return aa;
 }
 
-
+//*************************************************************************************
 // Makes the X scaled column in the Alignment tables from the first non-NAN alignment
+//*************************************************************************************
 function makeAlignXScaled(Alignments, table){
 	for (var r = 0; r < Alignments.length; r++) {
 		var al = Alignments[r];
@@ -1301,7 +1311,9 @@ function makeAlignXScaled(Alignments, table){
 // Functions that generate the overlay
 //*************************************************************************************
 
+//*************************************************************************************
 //  takes an Profile and overlay, returns an updated overlay with the line ROI of the Profile (not currently used)
+//*************************************************************************************
 function addROIToOverlay(Profile, overlay, color, width) {
 	var roi = Profile.PSourceROI;
 	roi.setPosition(Profile.PSliceNumber);
@@ -1312,6 +1324,7 @@ function addROIToOverlay(Profile, overlay, color, width) {
 }
 //*************************************************************************************
 // takes an Profile and overlay, returns an updated overlay with the line ROI of an Profile as a "snake"
+//*************************************************************************************
 function addOutlineToOverlay(Profile, overlay, width, type) {
 	var roi = Profile.PSourceROI.clone();
 	if (type == "stack") {
@@ -1340,6 +1353,7 @@ function addOutlineToOverlay(Profile, overlay, width, type) {
 }
 //*************************************************************************************
 // takes a Profile and overlay, returns an updated overlay with the begin, max and end as point ROIs
+//*************************************************************************************
 function addFToOverlay(Profile, Feature, overlay, type) {
 	if (type == "stack") {
 		var pos = Profile.PSliceNumber;
@@ -1377,7 +1391,9 @@ function addFToOverlay(Profile, Feature, overlay, type) {
 // Functions thet generate the plot graph
 //*************************************************************************************
 
+//*************************************************************************************
 // Adds the raw and smoothened profile to the plot
+//*************************************************************************************
 function addProfilePlot(Profile, plot) {	
 	plot.setLineWidth(1);
 	plot.setColor(Color.GRAY);
@@ -1390,6 +1406,7 @@ function addProfilePlot(Profile, plot) {
 //*************************************************************************************
 // Adds the feature points on the plot: feature begin and end, max
 // Also labels the plot in case there is no begin/end
+//*************************************************************************************
 function addFPlot(Profile, Feature, plot) {	
 	
 	// add begin, end and max on the plot + corresponding labels at the top
@@ -1436,6 +1453,7 @@ function addFPlot(Profile, Feature, plot) {
 
 //*************************************************************************************
 // Adds the fit on the plot here I have to add options depending on what is plotted
+//*************************************************************************************
 function addFitPlot(Profile, Feature, Fit, plot) {
 	plot.setColor(Color.RED);
 	plot.setLineWidth(1);
@@ -1470,7 +1488,8 @@ function addFitPlot(Profile, Feature, Fit, plot) {
 //*************************************************************************************
 //Function that define the Profile object and how to generate it
 //*************************************************************************************
-function profile(PWidth, PHeight, PBackground, PSourceROI, PStackName, PStackID, PPxSize, PPxUnit, PRoiName, PRoiIndex, PRoiLabel, PRoiType, PRoiColor, PSliceName, PSliceNumber, PXCoor, PYCoor, PScaledLength, PRawLength, PRawProfile, PLineCoor, PRawMin, PRawMax, PRawMeanInt, PRawIntDens, PHalfWidth, PSmoothProfile, PSmoothMin, PSmoothMax, PSmoothMaxIndex, PSmoothMaxIndexScaled, PNormProfile, PRawNormProfile, PRawNormMin, PRawNormMax, PHasFeatures, PHasFits, PHasAlignment) {
+
+function profile(PWidth, PHeight, PBackground, PSourceROI, PStackName, PStackID, PPxSize, PPxUnit, PRoiName, PRoiIndex, PRoiLabel, PRoiType, PRoiColor, PRoiWidth, PSliceName, PSliceNumber, PXCoor, PYCoor, PScaledLength, PRawLength, PRawProfile, PLineCoor, PRawMin, PRawMax, PRawMeanInt, PRawIntDens, PHalfWidth, PSmoothProfile, PSmoothMin, PSmoothMax, PSmoothMaxIndex, PSmoothMaxIndexScaled, PNormProfile, PRawNormProfile, PRawNormMin, PRawNormMax, PHasFeature, PHasFits, PHasAlignment) {
 	// int: image width (px)
 	this.PWidth = PWidth;
 	// int: image height (px)
@@ -1493,11 +1512,13 @@ function profile(PWidth, PHeight, PBackground, PSourceROI, PStackName, PStackID,
 	this.PRoiIndex = PRoiIndex;
 	// int: ROI label
 	this.PRoiLabel = PRoiLabel;	
-	// string: short slice label of slice containing the ROI
+	// string: ROI label
 	this.PRoiType = PRoiType;	
-	// string: short slice label of slice containing the ROI
-	this.PRoiColor = PRoiColor;	
 	// Java color: ROI color
+	this.PRoiColor = PRoiColor;	
+	// float: ROI width
+	this.PRoiWidth = PRoiWidth;
+	// string: short slice label of slice containing the ROI
 	this.PSliceName = PSliceName;
 	// int: slice number of slice containing the ROI
 	this.PSliceNumber = PSliceNumber;
@@ -1541,8 +1562,8 @@ function profile(PWidth, PHeight, PBackground, PSourceROI, PStackName, PStackID,
 	this.PRawNormMin = PRawNormMin;
 	// float: maximum of the raw normalized profile
 	this.PRawNormMax = PRawNormMax;
-	// boolean: have features been processed for this profile?
-	this.PHasFeatures = PHasFeatures;
+	// boolean: has a feature been processed for this profile?
+	this.PHasFeature = PHasFeature;
 	// boolean: have fits been processed for this profile?
 	this.PHasFits = PHasFits;
 	// boolean: has alignment been processed for this profile?
@@ -1573,7 +1594,7 @@ function feature(FProfileIndex, FBeginIndex, FScaledBegin, FEndIndex, FScaledEnd
 	// float array: feature Y coordinates (1-pixel appart)
 	this.FyCoor = FyCoor;
 	// roi: Feature ROI	
-	this.FROI = FROI;
+	this.FROI = FROI;	
 		
 }
 
@@ -1628,6 +1649,9 @@ function align(AProfileIndex, AMasterPos, AShiftLeft, AShiftRight, AXScaled, ARa
 	// array: aligned fit curve norm
 	this.ANormCurve = ANormCurve;
 }
+
+
+
 //*************************************************************************************
 //*************************************************************************************
 //*************************************************************************************
