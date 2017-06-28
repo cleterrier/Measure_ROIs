@@ -81,10 +81,11 @@ var SubBackgroundD = false;
 var ChooseTypeD = false; // Process specific categories?
 var TypeNameD = "Axon"; // Name of categories to process
 var ProfileWidthD = 5; // total width of the line trace for profile, 5 for AIS
-var HalfWidthD = 10; // sliding window smoothing along the profile, 0 for no smoothing, usually 10
+var HalfWidthD = 5; // sliding window smoothing along the profile, 0 for no smoothing, usually 10
 var ScalePlotsD = true; // present each plot scaled in Y?
 
-var getFeatureD = true; // compute feature (with threshold-based begin/max/end)?
+//var getFeatureD = true; // compute feature (with threshold-based begin/max/end)?
+var getFeatureD = false;
 var beginThresholdD = 0.35; // threshold for begin, 0.35 for AIS
 var endThresholdD = 0.35; // threshold for end, 0.35 for AIS
 var FeatureTypeArray = new Array("small", "large");
@@ -96,7 +97,8 @@ var FitYSourceD = "PSmoothProfile" // which profile to fit: PRawProfile, PSmooth
 var FitEquationArray = new Array("GAUSSIAN_NOOFFSET", "GAUSSIAN", "GAMMA_VARIATE");
 var FitEquationD = "GAUSSIAN_NOOFFSET"; // type of fit: GAUSSIAN_NOOFFSET, GAUSSIAN, GAMMA_VARIATE etc.
 
-var getAlignmentD = true; // compute aligned profiles?
+//var getAlignmentD = true; // compute aligned profiles?
+var getAlignmentD = false;
 var AlignOnArray = new Array("start", "begin", "max", "fitmax", "end");
 var AlignOnD = "begin"; // choose to align on "start", "begin", "max", "fitmax", "end"
 
@@ -106,15 +108,15 @@ var AlignOnD = "begin"; // choose to align on "start", "begin", "max", "fitmax",
 //**************************
 
 var logProfilesD = false; // detailled log of the Profiles, Features and Fits?
-var generateFeatureROID = true; // generates feature as ROI in the Roi Manager?
+var generateFeatureROID = false; // generates feature as ROI in the Roi Manager?
 var outTypeNameD = "PFF"; // category of output ROIs 
 var displayOverD = true; // display overlays
 var displayPlotsD = true; // display the plots stack
 var displayResultsTableD = true; // output Results Table?
-var displayProfilesTableD = false; // output Profiles Table?
+var displayProfilesTableD = true; // output Profiles Table?
 var displayAlignedTableD = false; // output Aligned Profiles Tables?
 var ProfileTypeArray = new Array("RawProfile", "SmoothProfile", "NormProfile", "RawNormProfile");
-var ProfileTypeD = "SmoothProfile"; // choose type of profile to align: raw, smoothened, smoothened normalized, raw normalized
+var ProfileTypeD = "NormProfile"; // choose type of profile to align: raw, smoothened, smoothened normalized, raw normalized
 var SubBackgroundD = true;
 
 
