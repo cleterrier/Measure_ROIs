@@ -40,25 +40,20 @@ macro "Edit_Cat_ROIs" {
 	ChangeWidth=Dialog.getCheckbox();
 	NewWidth=Dialog.getNumber();	
 
-	CatN = getIndex(Categories, Cat);
-	NewCatN = getIndex(Categories, NewCat);
 
-	if (SliceRange==false) {
-		StartSlice=1;
-		StopSlice=nSlices;
-	}
-
-	if (ChangeCat==true) {
-		ColorIndex=NewCat;
-	}
-	else {
-		ColorIndex=Cat;
+	if (SliceRange == false) {
+		StartSlice = 1;
+		StopSlice = nSlices;
 	}
 	
 	for (i=0; i<roiManager("count"); i++) {	
 		roiManager("select", i);
 		Name = getInfo("selection.name");
 		RoiSplit = split(Name, "-");
+		if (RoiSplit.length < 4) {
+			Name = Name + "-" + 0 + "-Default";
+			RoiSplit = split(Name, "-");
+		}
 		CurrentSliceString = RoiSplit[0];
 		CurrentSlice = parseInt(CurrentSliceString);
 		if (CurrentSlice >= StartSlice && CurrentSlice <= StopSlice) {
@@ -66,7 +61,8 @@ macro "Edit_Cat_ROIs" {
 			CatName = RoiSplit[4];
 			if (CatName == Cat || AllCat == true) {
 				if (ChangeCat == true) {
-					NewName = replace(Name, CatN + "-" + Cat, NewCatN + "-" + NewCat);
+					NewCatN = getIndex(Categories, NewCat);
+					NewName = replace(Name, CatType + "-" + CatName, NewCatN + "-" + NewCat);
 					Roi.setProperty("TracingType", NewCatN);
 					Roi.setProperty("TypeName", NewCat);
 					roiManager("Rename", NewName);
@@ -76,9 +72,10 @@ macro "Edit_Cat_ROIs" {
 					roiManager("Delete");
 					i--;
 				}
-				if (ChangeColor==true) {
-					if (NewColor=="default") {
-						NewColor=DefaultColors[parseInt(ColorIndex)];
+				if (ChangeColor == true) {
+					if (NewColor == "default") {
+						ColorIndex = getIndex(Categories, CatName);
+						NewColor = DefaultColors[ColorIndex];
 					}
 					roiManager("Set Color",NewColor);
 				}

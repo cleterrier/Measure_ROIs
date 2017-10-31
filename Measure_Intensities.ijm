@@ -50,6 +50,13 @@ macro "Measure Intensities" {
 		imNumber = getSliceNumber();
 		
 		roiTitle = getInfo("selection.name");
+		RoiSplit = split(roiTitle, "-");
+
+		if (RoiSplit.length > 3) {
+			Roi.setProperty("TracingType", RoiSplit[3]);
+			Roi.setProperty("TypeName", RoiSplit[4]);
+		}
+		
 		roiType = Roi.getProperty("TracingType");
 		roiTypeName = Roi.getProperty("TypeName");
 
@@ -60,7 +67,7 @@ macro "Measure Intensities" {
 
 
 		// Build the Results table line
-		ResultsLine = d2s(i + 1, 0) + "\t" + stackTitle + "\t" + imNumber + "\t" + imTitle + "\t" + roiNumber + "\t" + roiTitle + "\t" + roiType + "\t" + roiTypeName + "\t" + roiArea + "\t" + roiMean + "\t" + roiID + "\t" + roiStd;
+		ResultsLine = ""+ d2s(i + 1, 0) + "\t" + stackTitle + "\t" + imNumber + "\t" + imTitle + "\t" + roiNumber + "\t" + roiTitle + "\t" + roiType + "\t" + roiTypeName + "\t" + roiArea + "\t" + roiMean + "\t" + roiID + "\t" + roiStd;
 		
 		// gets the histogram mode (intensity value shared by the most pixels in the histogram) as the backgound intensity value
 		if (SubtractBgnd == true) {
