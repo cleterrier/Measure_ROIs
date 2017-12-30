@@ -9,7 +9,7 @@
 // |–•Extracted (created from raw images by the "Extract_ZVI" macro)
 // |-•Stacks (Created from "Extracted" by the "Generates_Stacks_Folder" macro)
 // |–•Tracings C=X (created from a stack in "Generates Stacks" by this macro)
-// new multi-channel version : 
+// new multi-channel version :
 // just choose the folder containing stacks, detects the number of C=X stacks and asks for which ones to batch export as 8-bit images
 
 macro "Generate_Tracings_Folder" {
@@ -20,6 +20,7 @@ macro "Generate_Tracings_Folder" {
 
 	// Get the list of stacks named C=X.tif in the input folder
 	ALL_NAMES = getFileList(INPUT_DIR);
+	Array.sort(ALL_NAMES);
 	nSTACKS = 0;
 	for (i = 0; i < ALL_NAMES.length; i++) {
 		if (matches(ALL_NAMES[i], ".*C=\\d.*.tif")) {
@@ -30,7 +31,7 @@ macro "Generate_Tracings_Folder" {
 	CHANNEL_STACKS = newArray(nSTACKS);
 	for (i = 0; i < ALL_NAMES.length; i++) {
 		if (matches(ALL_NAMES[i], ".*C=\\d.*.tif")) CHANNEL_STACKS[i] = ALL_NAMES[i];
-	}	
+	}
 
 	//Create the dialog for selecting stacks
 	CHANNEL_CHOICE = newArray(CHANNEL_STACKS.length);
@@ -43,7 +44,7 @@ macro "Generate_Tracings_Folder" {
 	for (i = 0; i < CHANNEL_STACKS.length; i++) {
 		CHANNEL_CHOICE[i] = Dialog.getCheckbox();
 	}
-	
+
 
 	// Gets the parent of parent folder
 	PARENT_DIR = File.getParent(INPUT_DIR);
@@ -59,7 +60,7 @@ macro "Generate_Tracings_Folder" {
 	setBatchMode(true);
 
 	// Opens the stacks and extract them as an 8-bit image sequence in the output folder
-	for (i = 0; i < CHANNEL_STACKS.length; i++) {	
+	for (i = 0; i < CHANNEL_STACKS.length; i++) {
 		if (CHANNEL_CHOICE[i] == true) {
 			open(INPUT_DIR + CHANNEL_STACKS[i]);
 			run("8-bit");
@@ -67,10 +68,10 @@ macro "Generate_Tracings_Folder" {
 			close();
 		}
 	}
-	
+
 	setBatchMode("exit and display");
 	print("*** Generates_Tracings_Folder end ***");
 	showStatus("Generates Tracings Folder finished");
 //	exec("open", OUTPUT_DIR);
 
-} 
+}
