@@ -107,10 +107,10 @@ var AlignOnD = "begin"; // choose to align on "start", "begin", "max", "fitmax",
 // Output Variables (AIS)
 //**************************
 
-var logProfilesD = false; // detailled log of the Profiles, Features and Fits?
+var logProfilesD = true; // detailled log of the Profiles, Features and Fits?
 var generateFeatureROID = false; // generates feature as ROI in the Roi Manager?
 var outTypeNameD = "PFF"; // category of output ROIs 
-var displayOverD = true; // display overlays
+var displayOverD = false; // display overlays
 var displayPlotsD = true; // display the plots stack
 var displayResultsTableD = true; // output Results Table?
 var displayProfilesTableD = true; // output Profiles Table?
@@ -539,10 +539,31 @@ if (gd.wasOKed()) {
 			}
 			 
 			else {
+				// Select source ROI
+				var sourceIndex = Profile.PRoiIndex;
+				rm.select(sourceIndex - r);
+				var rmrois = rm.getSelectedRoisAsArray();
+							
+				Froi = rmrois[0];
+				Froi.setProperty("TracingType", Profile.PRoiLabel);
+				Froi.setProperty("TypeName", Profile.PRoiType + "_" + outTypeName);
+				Froi.setStrokeColor(Profile.PRoiColor);
+				Froi.setStrokeWidth(Profile.PRoiWidth);
+				
+				rm.addRoi(Froi);
+
 				// Delete source ROI
 				var sourceIndex = Profile.PRoiIndex;
 				rm.select(sourceIndex - r);
-				rm.runCommand("Delete");				
+				rm.runCommand("Delete");
+
+				// Rename with "noFeat" to indicate failure to find full Feature
+				rm.select(rm.getCount()-1);
+				var sourceName = Profile.PRoiName;
+				var sourceParts = sourceName.split("-");
+				var destName = sourceParts[0] + "-" + sourceParts[1] + "-" + sourceParts[2] + "-" + Profile.PRoiLabel + "-" + Profile.PRoiType + "_" + "noFeat";
+				rm.runCommand("Rename", destName);			
+	
 			}
 		}	
 		rm.runCommand("Sort");
@@ -607,7 +628,7 @@ if (gd.wasOKed()) {
 			var Profile = AllProfiles[r];
 			var Feature = AllFeatures[r];
 			var Fit = AllFits[r];
-			
+			// IJ.log(Profile.PRoiName);
 			// generate the overlay: snake around the line trace and feature points
 			over = addOutlineToOverlay(Profile, over, ProfileWidth, "stack");
 			if (getFeature == true) over = addFToOverlay(Profile, Feature, over, "stack");
@@ -1021,9 +1042,9 @@ function getMeanIntensity(prf){
 // returns the index of the max value of an array
 //*************************************************************************************
 function getMaxIndex(prf) {
-	var max = prf [0];
+	var max = 0;
 	var mi = 0;
-	for (var i = 1; i <prf.length; i++) {
+	for (var i = 0; i <prf.length; i++) {
 		if (prf[i] > max) {
 			max = prf[i];
 			mi = i;	
@@ -1364,22 +1385,24 @@ function addFToOverlay(Profile, Feature, overlay, type) {
 		var pos = Profile.PRoiIndex+1;
 	}	
 	if (isNaN(Feature.FBeginIndex) == false) {
-		var BeginX = Profile.PXCoor[Feature.FBeginIndex];
-		var BeginY = Profile.PYCoor[Feature.FBeginIndex];	
+		var BeginX = Double.parseDouble(Profile.PXCoor[Feature.FBeginIndex]);
+		var BeginY = Double.parseDouble(Profile.PYCoor[Feature.FBeginIndex]);	
 		var roiB = new PointRoi(BeginX, BeginY);
 		roiB.setPosition(pos);
 		roiB.setStrokeColor(Color.GREEN);
 		overlay.add(roiB);
 	}
-	var maxX = Profile.PXCoor[Profile.PSmoothMaxIndex];
-	var maxY = Profile.PYCoor[Profile.PSmoothMaxIndex];	
+	
+	var secMax = Math.min(Profile.PXCoor.length-1, Profile.PSmoothMaxIndex);
+	var maxX = Double.parseDouble(Profile.PXCoor[secMax]);
+	var maxY = Double.parseDouble(Profile.PYCoor[secMax]);
 	var roiM = new PointRoi(maxX, maxY);
 	roiM.setPosition(pos);
 	roiM.setStrokeColor(Color.BLUE);
 	overlay.add(roiM);
 	if (isNaN(Feature.FEndIndex) == false) {
-		var EndX = Profile.PXCoor[Feature.FEndIndex];
-		var EndY = Profile.PYCoor[Feature.FEndIndex];	
+		var EndX = Double.parseDouble(Profile.PXCoor[Feature.FEndIndex]);
+		var EndY = Double.parseDouble(Profile.PYCoor[Feature.FEndIndex]);	
 		var roiE = new PointRoi(EndX, EndY);
 		roiE.setPosition(pos);
 		roiE.setStrokeColor(Color.MAGENTA);
