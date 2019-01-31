@@ -89,7 +89,7 @@ macro "Convert_ndf_to_ROI" {
 	roiManager("reset");
 
 	// Open all images in the folder
-	run("Image Sequence...", "open=[" + inDir + "]");
+	run("Image Sequence...", "open=[" + inDir + "] sort");
 
 	// Get slice number, and number of slice after channels split
 	allSlice = nSlices();
