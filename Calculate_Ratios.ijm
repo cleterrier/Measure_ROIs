@@ -9,13 +9,13 @@ macro "Calculate Ratios" {
 	IMAGENAMES = getColumn(Results,"Slice");
 	TYPES = getColumn(Results,"ROI type#");
 	CATS = getColumn(Results,"ROI type");
-	if (IMAGENAMES == -1 || TYPES == -1 || CATS == -1) exit ("One of the required column doesn't exist!");
+	if (IMAGENAMES[0] == -1 || TYPES[0] == -1 || CATS[0] == -1) exit("One of the required column doesn't exist!");
 	// Mean intensity used is the background-corrected mean (output by the "Measure Intensities" macro) or if no corrected mean column is found, the raw mean intensity.
 	CORRMEAN = getColumn(Results,"Corr Mean");
-	if (CORRMEAN == -1) CORRMEAN = getColumn(Results,"Raw Mean");
-	if (CORRMEAN == -1) exit ("Mean intensity column doesn't exist!");
+	if (CORRMEAN[0] == -1) CORRMEAN = getColumn(Results,"Raw Mean");
+	if (CORRMEAN[0] == -1) exit ("Mean intensity column doesn't exist!");
 	AREA = getColumn(Results, "Area");
-	if (AREA == -1) exit ("Area column doesn't exist!");
+	if (AREA[0] == -1) exit ("Area column doesn't exist!");
 	
 	// gets the number of images (defines the per-image arrays length)	
 	U=getUnique(IMAGENAMES);
