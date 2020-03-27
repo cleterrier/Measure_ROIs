@@ -1,4 +1,6 @@
 macro "Calculate by Image" {
+	
+	SplitCond = true;
 
 	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
 	Path = File.openDialog("Choose Results table");
@@ -60,7 +62,7 @@ macro "Calculate by Image" {
 
 
 	// Generate the Results table
-	title1 = RName + "_byIm";
+	title1 = RName + " by Image";
 	title2 = "[" + title1 + "]";
 	f = title2;
 	if (isOpen(title1))
@@ -114,8 +116,7 @@ macro "Calculate by Image" {
 				SumTypeA[UIndex] = SumTypeA[UIndex] + CORRMEAN[j] * AREA[j];
 				TypeA[UIndex] = TypeA[UIndex] + CORRMEAN[j];
 				NTypeA[UIndex] = NTypeA[UIndex] + 1;
-			}
-			
+			}			
 		}
 	
 		// Loops on all per-image slots
@@ -130,12 +131,27 @@ macro "Calculate by Image" {
 			else NMoyA[j] = NaN;
 		}
 
-
-		for (n = 0; n < Names.length; n++) {
+		ResultsLine = d2s(t + 1, 0) + "\t" + Names[0] + "\t" + CatNumN + "\t" + CatNum + "\t" + SumTypeA[0] + "\t" + LenTypeA[0] + "\t" + MoyA[0] + "\t" + TypeA[0] + "\t" + NTypeA[0] + "\t" + NMoyA[0];
+		print(f, ResultsLine);
+		t++;
+		
+		for (n = 1; n < Names.length; n++) {			
+			if (SplitCond == true) {
+				prevnameA = split(Names[n-1], "_");
+				currnameA = split(Names[n], "_");
+				prevC = prevnameA[0];
+				currC = currnameA[0];
+				if (prevC != currC) {
+					print(f, "");
+				}
+			}
+			
 			ResultsLine = d2s(t + 1, 0) + "\t" + Names[n] + "\t" + CatNumN + "\t" + CatNum + "\t" + SumTypeA[n] + "\t" + LenTypeA[n] + "\t" + MoyA[n] + "\t" + TypeA[n] + "\t" + NTypeA[n] + "\t" + NMoyA[n];
 			print(f, ResultsLine);
 			t++;
 		}
+		print(f, "");
+		print(f, "");
 
 	}
 

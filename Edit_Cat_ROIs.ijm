@@ -14,13 +14,17 @@ macro "Edit_Cat_ROIs" {
 	Dialog.addNumber("Start Slice", 1);
 	Dialog.addNumber("Stop Slice", nSlices);
 	Dialog.addMessage("\n");
-	Dialog.addChoice("Category", Categories, Categories[0]);
+	Dialog.addChoice("Source Category", Categories, Categories[0]);
 	Dialog.addString("Custom category", "", 12);
 	Dialog.addCheckbox("Apply to All Categories", false);
 	Dialog.addMessage("\n");
 	Dialog.addCheckbox("Change Category", false);
 	Dialog.addChoice("New Category", Categories, Categories[0]);
 	Dialog.addString("Custom new category", "", 12);
+	Dialog.addMessage("\n");
+	Dialog.addCheckbox("Merge two Categories", false);
+	Dialog.addChoice("Second Category", Categories, Categories[0]);
+	Dialog.addChoice("Merge into Category", Categories, Categories[0]);
 	Dialog.addMessage("\n");
 	Dialog.addCheckbox("Delete ROIs", false);
 	Dialog.addMessage("\n");
@@ -35,17 +39,25 @@ macro "Edit_Cat_ROIs" {
 	StopSlice=Dialog.getNumber();
 	Cat=Dialog.getChoice();
 	CCat = Dialog.getString();
-	if (CCat != "") Cat = CCat;
 	AllCat=Dialog.getCheckbox();
 	ChangeCat=Dialog.getCheckbox();
-	CNCat = Dialog.getString();
 	NewCat=Dialog.getChoice();
-	if (CNCat != "") NewCat = CNCat;
+	CNCat = Dialog.getString();
+	MergeCat=Dialog.getCheckbox();
+	SecondCat=Dialog.getChoice();
+	DestCat=Dialog.getChoice();
 	DeleteROI=Dialog.getCheckbox();
 	ChangeColor=Dialog.getCheckbox();
 	NewColor=Dialog.getChoice();
 	ChangeWidth=Dialog.getCheckbox();
 	NewWidth=Dialog.getNumber();
+
+	if (CCat != "") Cat = CCat;
+	if (CNCat != "") NewCat = CNCat;
+
+	if (MergeCat == true) {
+		NewCat = DestCat;
+	}
 
 
 	if (SliceRange == false) {
@@ -67,8 +79,8 @@ macro "Edit_Cat_ROIs" {
 			CatType = RoiSplit[3];
 			CatName = RoiSplit[4];
 //			print("CatType=" + CatType + " Cat="+Cat + " CatName=" + CatName + " NewCat=" + NewCat);
-			if (CatName == Cat || AllCat == true) {
-				if (ChangeCat == true) {
+			if (CatName == Cat || AllCat == true || (MergeCat == true && CatName == SecondCat)) {
+				if (ChangeCat == true || MergeCat == true) {
 //					print("changing Cat");
 					NewCatN = getIndex(Categories, NewCat);
 					NewName = RoiSplit[0] + "-" + RoiSplit[1] + "-" + RoiSplit[2] + "-" + NewCatN + "-" + NewCat;
@@ -77,7 +89,7 @@ macro "Edit_Cat_ROIs" {
 					Roi.setProperty("TypeName", NewCat);
 					roiManager("Rename", NewName);
 					roiManager("Set Color", DefaultColors[NewCatN]);
-				}
+				}			
 				if (DeleteROI==true) {
 					roiManager("Delete");
 					i--;
