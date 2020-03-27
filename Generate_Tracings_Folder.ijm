@@ -13,6 +13,10 @@
 // just choose the folder containing stacks, detects the number of C=X stacks and asks for which ones to batch export as 8-bit images
 
 macro "Generate_Tracings_Folder" {
+
+	GAUSS_DEF = 0;	
+	SAT_DEF = 0;
+	
 	// Get the input stack
 	INPUT_DIR = getDirectory("Select a directory containing the stacks to be traced");
 	print("\n\n\n*** Generates_Tracings_Folder Log ***");
@@ -40,10 +44,16 @@ macro "Generate_Tracings_Folder" {
 	for (i = 0; i < CHANNEL_STACKS.length; i++) {
 		Dialog.addCheckbox(CHANNEL_STACKS[i], false);
 	}
+	Dialog.addMessage("Preprocessing steps:");
+	Dialog.addNumber("Gaussian blur (0 for none)", GAUSS_DEF, 0, 2, "pixels");
+	Dialog.addNumber("Enhance contrast (0 for none)", SAT_DEF, 3, 5, "% saturated");
 	Dialog.show();
 	for (i = 0; i < CHANNEL_STACKS.length; i++) {
 		CHANNEL_CHOICE[i] = Dialog.getCheckbox();
 	}
+	GAUSS = Dialog.getNumber();
+	SAT = Dialog.getNumber();
+
 
 
 	// Gets the parent of parent folder
@@ -63,6 +73,13 @@ macro "Generate_Tracings_Folder" {
 	for (i = 0; i < CHANNEL_STACKS.length; i++) {
 		if (CHANNEL_CHOICE[i] == true) {
 			open(INPUT_DIR + CHANNEL_STACKS[i]);
+			if (GAUSS > 0) {
+				run("Enhance Contrast...", "saturated=" + SAT + " normalize process_all");
+			}
+			if (SAT > 0) {
+				run("Gaussian Blur...", "sigma=" + GAUSS + " stack");
+			}			
+			resetMinAndMax();
 			run("8-bit");
 			run("Image Sequence... ", "format=TIFF name=C=0 start=0 digits=4 use save=[" + OUTPUT_DIR +"]");
 			close();

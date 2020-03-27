@@ -1,8 +1,7 @@
-macro "Calculate Ratios" {	
-	
-	DefCats = newArray("Default", "Axon", "Dendrite", "Primary", "Secondary", "Tertiary", "Type 06", "Type 07");
-	
-	Path = File.openDialog("Choose Results table");	
+macro "Calculate Ratios" {
+
+	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
+	Path = File.openDialog("Choose Results table");
 	Results = File.openAsString(Path);
 
 	// Retrieve the Labels column, the mean intenisty column and the area column
@@ -16,11 +15,11 @@ macro "Calculate Ratios" {
 	if (CORRMEAN[0] == -1) exit ("Mean intensity column doesn't exist!");
 	AREA = getColumn(Results, "Area");
 	if (AREA[0] == -1) exit ("Area column doesn't exist!");
-	
-	// gets the number of images (defines the per-image arrays length)	
+
+	// gets the number of images (defines the per-image arrays length)
 	U=getUnique(IMAGENAMES);
-	
-	
+
+
 	UT = getUnique(CATS);
 	UCATS = newArray(UT);
 	UCATS[0] = CATS[0];
@@ -36,13 +35,13 @@ macro "Calculate Ratios" {
 	Dialog.addChoice("Numerator (N)", UCATS, UCATS[0]);
 	Dialog.addChoice("Denominator (D)", UCATS, UCATS[UCATS.length-1]);
 	Dialog.show();
-	
+
 	CatNum = Dialog.getChoice();
 	CatDen = Dialog.getChoice();
 
 	CatNumN = getIndex(DefCats, CatNum);
 	CatDenN = getIndex(DefCats, CatDen);
-	
+
 	// Define all per-image arrays
 	// Names : name of the image
 	// SumType: summed integrated intensities
@@ -57,26 +56,26 @@ macro "Calculate Ratios" {
 	// NRatio: ratio og NMoy, i.e. ratio of averages for each ROI as individual mean intensities
 
 	Names = newArray(U);
-	
+
 	SumTypeA = newArray(U);
 	LenTypeA = newArray(U);
 	MoyA = newArray(U);
 	TypeA = newArray(U);
 	NTypeA = newArray(U);
 	NMoyA = newArray(U);
-	
+
 	SumTypeB = newArray(U);
 	LenTypeB = newArray(U);
 	MoyB = newArray(U);
 	TypeB = newArray(U);
 	NTypeB = newArray(U);
 	NMoyB = newArray(U);
-	
+
 	RatioAB = newArray(U);
 	NRatioAB = newArray(U);
 
 // Initialization for i = 0 (first Results Table line)
-	Names[0] = IMAGENAMES[0];	
+	Names[0] = IMAGENAMES[0];
 	// Stores values in the first per-image slot if the ROI in the current line is #A
 	if (TYPES[0] == CatNumN){
 		LenTypeA[0] = 0 + AREA[0];
@@ -116,7 +115,7 @@ macro "Calculate Ratios" {
 			TypeB[UIndex] = TypeB[UIndex] + CORRMEAN[j];
 			NTypeB[UIndex] = NTypeB[UIndex] + 1;
 		}
-	
+
 	}
 
 	// Loops on all per-image slots
@@ -137,7 +136,7 @@ macro "Calculate Ratios" {
 		else NMoyB[j] = NaN;
 		if (NTypeA[j] !=0 && NTypeB[j] !=0) NRatioAB[j] = NMoyA[j] / NMoyB[j];
 		else NRatioAB[j] = NaN;
-	
+
 	}
 
 // Generate the Ratios table
@@ -194,4 +193,3 @@ function getIndex(array, el) {
 	}
 	return -1;
 }
-
