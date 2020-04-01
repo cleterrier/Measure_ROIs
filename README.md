@@ -19,4 +19,4 @@
 
 Please see the detailed tutorial here:
 
-https://www.evernote.com/shard/s2/sh/78f84e1b-dff2-43cc-9050-783afb99056c/f15e650b16a83777
+https://www.evernote.com/l/AAIhoY2iUR5Iza0lMfDUuzqMFKOdCPug4e4

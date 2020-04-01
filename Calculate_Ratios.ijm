@@ -3,6 +3,8 @@ macro "Calculate Ratios" {
 	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
 	Path = File.openDialog("Choose Results table");
 	Results = File.openAsString(Path);
+	RName = File.getNameWithoutExtension(Path);
+
 
 	// Retrieve the Labels column, the mean intenisty column and the area column
 	IMAGENAMES = getColumn(Results,"Slice");
@@ -140,7 +142,7 @@ macro "Calculate Ratios" {
 	}
 
 // Generate the Ratios table
-	title1 = "(" + CatNum + "/" + CatDen + ") Ratios";
+	title1 = RName + " (" + CatNum + "/" + CatDen + ") ratios";
 	title2 = "[" + title1 + "]";
 	f = title2;
 	if (isOpen(title1))
