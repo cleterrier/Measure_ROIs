@@ -39,7 +39,7 @@ macro "Measure Intensities" {
 		print(f, "\\Clear");
 	else
 	run("New... ", "name=" + title2 + " type=Table");
-	Headings = "\\Headings:n\tStack\tSlice#\tSlice\tROI#\tROI\tROI type#\tROI type\tArea\tRaw Mean\tRaw IDt\tStd Dev\tBgrnd\tCorr Mean\tCorr ID";
+	Headings = "\\Headings:n\tStack\tSlice#\tSlice\tROI#\tROI\tROI type#\tROI type\tArea/Length\tRaw Mean\tRaw IDt\tStd Dev\tBgrnd\tCorr Mean\tCorr ID";
 	print(f, Headings);
 
 	
@@ -64,6 +64,10 @@ macro "Measure Intensities" {
 		
 		getStatistics(roiArea, roiMean, roiMin, roiMax, roiStd, roiHistogram);
 		roiID = roiArea * roiMean;
+
+		if (is("line") == true) {
+			roiArea = getValue("Length");
+		}
 
 
 		// Build the Results table line

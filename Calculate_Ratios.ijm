@@ -6,7 +6,7 @@ macro "Calculate Ratios" {
 	RName = File.getNameWithoutExtension(Path);
 
 
-	// Retrieve the Labels column, the mean intenisty column and the area column
+	// Retrieve the Labels column, the mean intensity column and the area column
 	IMAGENAMES = getColumn(Results,"Slice");
 	TYPES = getColumn(Results,"ROI type#");
 	CATS = getColumn(Results,"ROI type");

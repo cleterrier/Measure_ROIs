@@ -6,7 +6,7 @@ macro "Edit_Cat_ROIs" {
 //	Categories=newArray("0","1","2","3","4","5","6","7");
 
 	Categories = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
-	DefaultColors=newArray("magenta","orange", "red", "yellow", "blue", "green", "cyan", "orange", "red", "yellow", "blue", "green", "cyan", "blue", "cyan", "green", "magenta", "red", "blue", "yellow", "cyan", "grey", "orange");
+	DefaultColors=newArray("magenta","orange", "red", "yellow", "blue", "green", "cyan", "orange", "red", "yellow", "blue", "green", "cyan", "blue", "cyan", "green", "magenta", "red", "blue", "yellow", "cyan", "grey", "orange", "#551a8b"); // last is purple
 	CatColors=newArray("default", "red","green", "blue","yellow", "orange", "magenta", "cyan", "grey", "white", "black");
 
 	Dialog.create("Edit categorized ROIs");

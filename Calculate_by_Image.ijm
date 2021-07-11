@@ -16,8 +16,8 @@ macro "Calculate by Image" {
 	CORRMEAN = getColumn(Results,"Corr Mean");
 	if (CORRMEAN[0] == -1) CORRMEAN = getColumn(Results,"Raw Mean");
 	if (CORRMEAN[0] == -1) exit ("Mean intensity column doesn't exist!");
-	AREA = getColumn(Results, "Area");
-	if (AREA[0] == -1) exit ("Area column doesn't exist!");
+	AREA = getColumn(Results, "Area/Length");
+	if (AREA[0] == -1) exit ("Area/Length column doesn't exist!");
 
 	// gets the number of images (defines the per-image arrays length)
 	U=getUnique(IMAGENAMES);
@@ -69,7 +69,7 @@ macro "Calculate by Image" {
 		print(f, "\\Clear");
 	else
 		run("New... ", "name="+title2+" type=Table");
-	Headings = "\\Headings:n\tImage\tROI Type #\tRoi Type\tSummed ID\tSummed Area\tOverall MI\tSummed MI\tNumber\tAverage MI";
+	Headings = "\\Headings:n\tImage\tROI Type #\tRoi Type\tSummed ID\tSummed Area/Length\tOverall MI\tSummed MI\tNumber\tAverage MI";
 	print(f, Headings);
 
 	t = 0;
