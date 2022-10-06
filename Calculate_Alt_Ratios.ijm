@@ -1,19 +1,24 @@
-macro "Calculate Ratios" {
+macro "Calculate Alt Ratios" {
 
 	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
 	Path = File.openDialog("Choose Results table");
+	
+	// Define separator depending on format
+	if (endsWith(Path, ".csv")) sep = ",";
+	else sep = "\t";
+	
 	Results = File.openAsString(Path);
 	RName = File.getNameWithoutExtension(Path);
 
 
 	// Retrieve the labels/categories columns and the mean intensity column
-	IMAGENAMES = getColumn(Results,"Slice");
-	TYPES = getColumn(Results,"ROI type#");
-	CATS = getColumn(Results,"ROI type");
+	IMAGENAMES = getColumn(Results,"Slice", sep);
+	TYPES = getColumn(Results,"ROI type#", sep);
+	CATS = getColumn(Results,"ROI type", sep);
 	if (IMAGENAMES[0] == -1 || TYPES[0] == -1 || CATS[0] == -1) exit("One of the required column doesn't exist!");
 	// Mean intensity used is the background-corrected mean (output by the "Measure Intensities" macro) or if no corrected mean column is found, the raw mean intensity.
-	CORRMEAN = getColumn(Results,"Corr Mean");
-	if (CORRMEAN[0] == -1) CORRMEAN = getColumn(Results,"Raw Mean");
+	CORRMEAN = getColumn(Results,"Corr Mean", sep);
+	if (CORRMEAN[0] == -1) CORRMEAN = getColumn(Results,"Raw Mean", sep);
 	if (CORRMEAN[0] == -1) exit ("Mean intensity column doesn't exist!");
 
 	// Generate the Ratios table
@@ -38,19 +43,19 @@ macro "Calculate Ratios" {
 
 
 // This function returns all values in a Results Table column as an array (or -1 if the Header is not found)
-function getColumn(TableString, Header) {
+function getColumn(TableString, Header, sepa) {
 	Rows = split(TableString, "\n");
-	Labels = split(Rows[0], "\t");
+	Labels = split(Rows[0], sepa);
 	IndexCol = -1;
 	for (i = 0; i < Labels.length; i++) {
 		if (Labels[i] == Header) {
 			IndexCol = i;
 		}
 	}
-	if (IndexCol == -1) return -1;
+	if (IndexCol == -1) return newArray("-1", "0");
 	Column = newArray(Rows.length - 1);
 	for (i = 1; i < Rows.length; i++) {
-		CurrentLine = split(Rows[i], "\t");
+		CurrentLine = split(Rows[i], sepa);
 		Column[i-1] = CurrentLine[IndexCol];
 	}
 	return Column;

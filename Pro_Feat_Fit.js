@@ -28,7 +28,7 @@ importClass(Packages.ij.gui.PolygonRoi);
 
 IJ.log("\n*****************************************************\nProFeatFit has started!\n*****************************************************");
 
-/*
+
 //**************************
 // Input Variables (SR)
 //**************************
@@ -36,11 +36,11 @@ IJ.log("\n*****************************************************\nProFeatFit has 
 var ChooseTypeD = false; // Process specific categories?
 var TypeNameD = "Axon"; // Name of categories to process
 
-var ProfileWidthD = 40; // total width of the line trace for profile, 5 for AIS
+var ProfileWidthD = 50; // total width of the line trace for profile, 5 for AIS
 var HalfWidthD = 0; // sliding window smoothing along the profile, 0 for no smoothing, usually 10
 var ScalePlotsD = true; // present each plot scaled in Y?
 
-var getFeatureD = true; // compute feature (with threshold-based begin/max/end)?
+var getFeatureD = false; // compute feature (with threshold-based begin/max/end)?
 var beginThresholdD = 0.30; // threshold for begin, 0.30 for AIS
 var endThresholdD = 0.30; // threshold for end, 0.30 for AIS
 var FeatureTypeArray = new Array("small", "large");
@@ -48,9 +48,9 @@ var FeatureTypeD = "small"; // choose "small" or "large" relative to threshold (
 
 var getFitD = true; // compute a fit of the profile?
 var FitYSourceArray = new Array("PRawProfile", "PSmoothProfile"); // "PNormProfile", "PRawNormProfile" not supported yet (plotting problem)
-var FitYSourceD = "PSmoothProfile" // which profile to fit: PRawProfile, PSmoothProfile, PNormProfile, PRawNormProfile
+var FitYSourceD = "PRawProfile" // which profile to fit: PRawProfile, PSmoothProfile, PNormProfile, PRawNormProfile
 var FitEquationArray = new Array("GAUSSIAN_NOOFFSET", "GAUSSIAN", "GAMMA_VARIATE");
-var FitEquationD = "GAUSSIAN_NOOFFSET"; // type of fit: GAUSSIAN_NOOFFSET, GAUSSIAN, GAMMA_VARIATE etc.
+var FitEquationD = "GAUSSIAN"; // type of fit: GAUSSIAN_NOOFFSET, GAUSSIAN, GAMMA_VARIATE etc.
 
 var getAlignmentD = true; // compute aligned profiles?
 // var alignFitsD = true; // add fit curves to the alignments? needs some more work
@@ -64,16 +64,17 @@ var AlignOnD = "fitmax"; // choose to align on "start", "begin", "max", "fitmax"
 
 var logProfilesD = true; // detailled log of the Profiles, Features and Fits?
 var generateFeatureROID = false; // generates feature as ROI in the Roi Manager?
-var displayOverD = true; // display overlays
+var outTypeNameD = "PFF"; // category of output ROIs
+var displayOverD = false; // display overlays
 var displayPlotsD = true; // display the plots stack
 var displayResultsTableD = true; // output Results Table?
 var displayProfilesTableD = true; // output Profiles Table?
 var displayAlignedTableD = true; // output Aligned Profiles Tables?
 var ProfileTypeArray = new Array("RawProfile", "SmoothProfile", "NormProfile", "RawNormProfile");
-var ProfileTypeD = "RawNormProfile"; // choose type of profile to align: raw, smoothened, smoothened normalized, raw normalized
+var ProfileTypeD = "RawProfile"; // choose type of profile to align: raw, smoothened, smoothened normalized, raw normalized
 var SubBackgroundD = false;
-*/
 
+/*
 //**************************
 // Input Variables (AIS)
 //**************************
@@ -118,6 +119,7 @@ var displayAlignedTableD = false; // output Aligned Profiles Tables?
 var ProfileTypeArray = new Array("RawProfile", "SmoothProfile", "NormProfile", "RawNormProfile");
 var ProfileTypeD = "NormProfile"; // choose type of profile to align: raw, smoothened, smoothened normalized, raw normalized
 var SubBackgroundD = true;
+*/
 
 
 //**************************
@@ -265,7 +267,6 @@ if (gd.wasOKed()) {
 		var Feature = new feature();
 		var Fit = new fit();
 		var Align = new align();
-		
 		
 		Profile.PStackName = StackName;
 		Profile.PStackID = StackID;
@@ -486,7 +487,7 @@ if (gd.wasOKed()) {
 	//**************************
 	
 	
-	var outName = StackName + "_PFF(w" + ProfileWidth + ",h" + HalfWidth; 
+	var outName = StackName.replace(".tif", "") + "_PFF(w" + ProfileWidth + ",h" + HalfWidth; 
 	if (getFeature == true) outName += ",b" + beginThreshold + ",e" + endThreshold + "," + FeatureType;
 	if (getAlignment == true) outName += ",a" + AlignOn;
 	outName += ")";
@@ -604,7 +605,7 @@ if (gd.wasOKed()) {
 			prfPlot.draw;
 			AllProfilePlots[r] = prfPlot;
 			var PlotP = prfPlot.getProcessor();
-			plotStacks.addSlice(Profile.PSliceName + ":" + Profile.PRoiName, PlotP);
+			plotStacks.addSlice(Profile.PSliceName.replace(",","-") + " " + Profile.PRoiName, PlotP);
 		}
 	
 		// i+ from the Profiles image stack
@@ -656,7 +657,7 @@ if (gd.wasOKed()) {
 			rt.incrementCounter();
 			row++;
 		
-			var fullName = Profile.PStackName + ":" + Profile.PRoiName+ ":" + Profile.PSliceName ;
+			var fullName = Profile.PStackName + " " + Profile.PRoiName+ " " + Profile.PSliceName;
 			
 			rt.setValue("Stack", row, Profile.PStackName);
 			rt.setValue("Slice #", row, "" + Profile.PSliceNumber);
@@ -713,10 +714,10 @@ if (gd.wasOKed()) {
 				if (SubBackground == true) {
 					if (ProfileType == "RawProfile" || ProfileType == "SmoothProfile") pValue = pValue - Profile.PBackground;			
 				}
-				pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
+				pt.setValue(Profile.PSliceName.replace(",","-") + " " + Profile.PRoiName, p, pValue);
 			}
 			for (p = Profile.PNormProfile.length; p < maxRawLength; p++) {
-				pt.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Number.NaN);
+				pt.setValue(Profile.PSliceName.replace(",","-") + " " + Profile.PRoiName, p, Number.NaN);
 			}
 		}
 		// show the Profiles Table
@@ -747,12 +748,12 @@ if (gd.wasOKed()) {
 					if (SubBackground == true) {
 						if (ProfileType == "RawProfile" || ProfileType == "SmoothProfile") pValue = pValue - Profile.PBackground;			
 					}			
-					at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, pValue);
+					at.setValue(Profile.PSliceName.replace(",","-") + " " + Profile.PRoiName, p, pValue);
 				}		
 			}
 			else {
 				for (var p = 0; p < AlignLength; p++) {
-					at.setValue(Profile.PSliceName + ":" + Profile.PRoiName, p, Double.NaN);
+					at.setValue(Profile.PSliceName.replace(",","-") + " " + Profile.PRoiName, p, Double.NaN);
 				}			
 			}
 		}
@@ -927,7 +928,7 @@ function getSlice(imp, rm, r) {
 	if (imp.getImageStackSize() > 1) {	
 		var snumber = rm.getSliceNumber(rm.getName(r));
 		var stk = imp.getImageStack();
-		var sname = stk.getShortSliceLabel(snumber);	
+		var sname = stk.getSliceLabel(snumber);	
 	}
 	else {
 		var snumber = 1;
