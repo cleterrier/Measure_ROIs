@@ -1,8 +1,15 @@
+// This macro calculates the average mean intensity of all ROIs from each category, image by image from a txt/xls/csv file obtained using the "Measure Intensities" macro.
+// Overall MI (Mean Intensity) is the Summed ID divided by the Summed Area (or Lenght for line ROIs) - treating ROIs of one category like part of one big object.
+// Average MI (Mean Intensity) is the average of the mean intensities for each ROI - treating each ROI as a separate object.
+// If background-corrected MIs have been output by the "Measure Intensities" macro, they will be used rather than raw MIs.
+
 macro "Calculate by Image" {
 	
 	SplitCond = true;
 
-	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
+//	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
+// not useful anymore as we can process any category name
+	
 	Path = File.openDialog("Choose Results table");
 	
 	// Define separator depending on format
@@ -24,47 +31,16 @@ macro "Calculate by Image" {
 	AREA = getColumn(Results, "Area/Length", sep);
 	if (AREA[0] == -1) exit ("Area/Length column doesn't exist!");
 
-	// gets the number of images (defines the per-image arrays length)
-	U=getUnique(IMAGENAMES);
+	// Get an array with each image name and the number of images (defines the per-image arrays length)
+	UIM = getUniqueA(IMAGENAMES);
+	U = UIM.length;
 
+	// Get an array with each categories and categories numbers
+	UCATS = getUniqueA(CATS);
+	UTYPES = getUniqueA(TYPES);
 
-	UT = getUnique(CATS);
-	UCATS = newArray(UT);
-	UCATS[0] = CATS[0];
-	u = 0;
-	for (i = 1; i < CATS.length; i++) {
-		if (CATS[i] != CATS[i-1]) {
-			u++;
-			UCATS[u] = CATS[i];
-		}
-	}
-
-	
-
-//	Dialog.create("Calculate Ratios Options");
-//	Dialog.addChoice("Numerator (N)", UCATS, UCATS[0]);
-//	Dialog.addChoice("Denominator (D)", UCATS, UCATS[UCATS.length-1]);
-//	Dialog.show();
-
-//	CatNum = Dialog.getChoice();
-//	CatDen = Dialog.getChoice();
-
-//	CatNumN = getIndex(DefCats, CatNum);
-//	CatDenN = getIndex(DefCats, CatDen);
-
-	// Define all per-image arrays
-	// Names : name of the image
-	// SumType: summed integrated intensities
-	// LenType: summed areas
-	// MoyType: SumType / LenType, i.e. overall mean intensity for all ROIs pooled
-	// MoyType does not depend on the spatial scale as it is present as a multiplicative factor in SumType and LenType
-	// Type: summed mean intensities
-	// NType: number of ROIs
-	// NMoy: Type / NType, i.e. average of mean intensities for each ROI as individual mean intensities
-	// NType does not depend on the spatial scale
-	// Ratio: ratio of MoyTypes, i.e. ratio of overall mean intensity for all ROIs pooled
-	// NRatio: ratio og NMoy, i.e. ratio of averages for each ROI as individual mean intensities
-
+//	Array.print(UCATS);
+//	Array.print(UTYPES);
 
 	// Generate the Results table
 	title1 = RName + " by Image";
@@ -81,11 +57,11 @@ macro "Calculate by Image" {
 
 
 	// loop on all unique categories
-	for (c= 0; c < UT; c++ ) {
+	for (c= 0; c < UCATS.length; c++ ) {
 			
 		CatNum = UCATS[c];
-		CatNumN = getIndex(DefCats, CatNum);
-
+		INum = getIndex(UCATS, CatNum);
+		TypeNum = UTYPES[INum];
 
 		Names = newArray(U);	
 		SumTypeA = newArray(U);
@@ -99,7 +75,7 @@ macro "Calculate by Image" {
 		// Initialization for i = 0 (first Results Table line)
 		Names[0] = IMAGENAMES[0];
 		// Stores values in the first per-image slot if the ROI in the current line is #A
-		if (TYPES[0] == CatNumN){
+		if (TYPES[0] == TypeNum){
 			LenTypeA[0] = 0 + AREA[0];
 			SumTypeA[0] = 0 + CORRMEAN[0] * AREA[0];
 			TypeA[0] = 0 + CORRMEAN[0];
@@ -116,7 +92,7 @@ macro "Calculate by Image" {
 				Names[UIndex] = IMAGENAMES[j];
 			}
 			// Stores values in the current per-image slot if the ROI in the current line is #A
-			if (TYPES[j] == CatNumN) {
+			if (TYPES[j] == TypeNum) {
 				LenTypeA[UIndex] = LenTypeA[UIndex] + AREA[j];
 				SumTypeA[UIndex] = SumTypeA[UIndex] + CORRMEAN[j] * AREA[j];
 				TypeA[UIndex] = TypeA[UIndex] + CORRMEAN[j];
@@ -136,7 +112,7 @@ macro "Calculate by Image" {
 			else NMoyA[j] = NaN;
 		}
 
-		ResultsLine = d2s(t + 1, 0) + "\t" + Names[0] + "\t" + CatNumN + "\t" + CatNum + "\t" + SumTypeA[0] + "\t" + LenTypeA[0] + "\t" + MoyA[0] + "\t" + TypeA[0] + "\t" + NTypeA[0] + "\t" + NMoyA[0];
+		ResultsLine = d2s(t + 1, 0) + "\t" + Names[0] + "\t" + TypeNum + "\t" + CatNum + "\t" + SumTypeA[0] + "\t" + LenTypeA[0] + "\t" + MoyA[0] + "\t" + TypeA[0] + "\t" + NTypeA[0] + "\t" + NMoyA[0];
 		print(f, ResultsLine);
 		t++;
 		
@@ -180,18 +156,24 @@ function getColumn(TableString, Header, sepa) {
 }
 
 
-// This function returns the number of unique elements in a sorted array
-function getUnique(SortedArray) {
-	Array.sort(SortedArray);
-	DiffNumber = 1;
-	for (i = 1; i < SortedArray.length; i++) {
-		if (SortedArray[i] != SortedArray[i - 1]) {
-			DiffNumber = DiffNumber + 1;
+// This function returns an array of unique elements from an unsorted array
+function getUniqueA(unsortedArray) {
+	
+	uniqueArray = newArray(1);
+	uniqueArray[0] = unsortedArray[0];
+	ui = 1;	
+	
+	for (ua = 1; ua < unsortedArray.length; ua++) {
+		if (unsortedArray[ua] != unsortedArray[ua - 1] && getIndex(uniqueArray, unsortedArray[ua]) < 0) {
+			uniqueArray[ui] = unsortedArray[ua];
+			ui++;
 		}
 	}
-	return DiffNumber;
+	return uniqueArray;
+
 }
 
+// This function returns the index of an element in an array
 function getIndex(array, el) {
 	for (i = 0; i < array.length; i++) {
 		if (array[i] == el) return i;

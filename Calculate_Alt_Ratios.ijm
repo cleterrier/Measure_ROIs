@@ -1,6 +1,7 @@
+// this macro calculates the ratio  of the mean intensity between alternating ROIs from a csv/txt/xls file obtained using the "Measure Intensities" macro
+
 macro "Calculate Alt Ratios" {
 
-	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
 	Path = File.openDialog("Choose Results table");
 	
 	// Define separator depending on format
@@ -13,9 +14,7 @@ macro "Calculate Alt Ratios" {
 
 	// Retrieve the labels/categories columns and the mean intensity column
 	IMAGENAMES = getColumn(Results,"Slice", sep);
-	TYPES = getColumn(Results,"ROI type#", sep);
-	CATS = getColumn(Results,"ROI type", sep);
-	if (IMAGENAMES[0] == -1 || TYPES[0] == -1 || CATS[0] == -1) exit("One of the required column doesn't exist!");
+	if (IMAGENAMES[0] == -1) exit("One of the required column doesn't exist!");
 	// Mean intensity used is the background-corrected mean (output by the "Measure Intensities" macro) or if no corrected mean column is found, the raw mean intensity.
 	CORRMEAN = getColumn(Results,"Corr Mean", sep);
 	if (CORRMEAN[0] == -1) CORRMEAN = getColumn(Results,"Raw Mean", sep);

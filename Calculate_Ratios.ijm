@@ -1,6 +1,13 @@
+// This macro calculates the average ratio between two group of ROIs of two categories, image by image from a txt/xls/csv file obtained using the "Measure Intensities" macro.
+// Mean MI (Mean Intensity) Ratio considers the ratio of (Summed ID divided by Summed Area (or Lenght for line ROIs)) for each category  - treating ROIs of one category like part of one big object.
+// Average MI (Mean Intensity) Ratio is the ratio of (Average of mean intensities for each ROI) for each category - treating each ROI as a separate object.
+// If background-corrected MIs have been output by the "Measure Intensities" macro, they will be used rather than raw MIs.
+
 macro "Calculate Ratios" {
 
-	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
+//	DefCats = newArray("Default", "Axon", "AIS", "Distal Axon", "Dendrite", "Synapse1", "Synapse2", "Axon (NT)", "AIS (NT)", "Distal Axon (NT)", "Dendrite (NT)", "Synapse 1 (NT)", "Synapse 2 (NT)", "Primary", "Secondary", "Tertiary", "Cat0", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7");
+// not useful anymore as we can process any category name
+
 	Path = File.openDialog("Choose Results table");
 	
 	// Define separator depending on format
@@ -14,8 +21,8 @@ macro "Calculate Ratios" {
 
 	// Retrieve the Labels column, the mean intensity column and the area column
 	IMAGENAMES = getColumn(Results,"Slice", sep);
-	TYPES = getColumn(Results,"ROI type#", sep);
 	CATS = getColumn(Results,"ROI type", sep);
+	TYPES = getColumn(Results,"ROI type#", sep);
 	print(IMAGENAMES[0] + "-" + TYPES[0] + "-" + CATS[0]);
 	if (IMAGENAMES[0] == -1 || TYPES[0] == -1 || CATS[0] == -1) exit("One of the required column doesn't exist!");
 	// Mean intensity used is the background-corrected mean (output by the "Measure Intensities" macro) or if no corrected mean column is found, the raw mean intensity.
@@ -26,20 +33,14 @@ macro "Calculate Ratios" {
 	if (AREA[0] == -1) AREA = getColumn(Results, "Area/Length", sep);
 	if (AREA[0] == -1) exit ("Area column doesn't exist!");
 
-	// gets the number of images (defines the per-image arrays length)
-	U=getUnique(IMAGENAMES);
+	// Get an array with each image name and the number of images (defines the per-image arrays length)
+	UIM = getUniqueA(IMAGENAMES);
+	U = UIM.length;
 
+	// Get an array with each categories and categories numbers
+	UCATS = getUniqueA(CATS);
+	UTYPES = getUniqueA(TYPES);
 
-	UT = getUnique(CATS);
-	UCATS = newArray(UT);
-	UCATS[0] = CATS[0];
-	u = 0;
-	for (i = 1; i < CATS.length; i++) {
-		if (CATS[i] != CATS[i-1]) {
-			u++;
-			UCATS[u] = CATS[i];
-		}
-	}
 
 	Dialog.create("Calculate Ratios Options");
 	Dialog.addChoice("Numerator (N)", UCATS, UCATS[0]);
@@ -49,8 +50,11 @@ macro "Calculate Ratios" {
 	CatNum = Dialog.getChoice();
 	CatDen = Dialog.getChoice();
 
-	CatNumN = getIndex(DefCats, CatNum);
-	CatDenN = getIndex(DefCats, CatDen);
+	INum = getIndex(UCATS, CatNum);
+	IDen = getIndex(UCATS, CatDen);
+	
+	TypeNum = UTYPES[INum];
+	TypeDen = UTYPES[IDen];
 
 	// Define all per-image arrays
 	// Names : name of the image
@@ -87,7 +91,7 @@ macro "Calculate Ratios" {
 // Initialization for i = 0 (first Results Table line)
 	Names[0] = IMAGENAMES[0];
 	// Stores values in the first per-image slot if the ROI in the current line is #A
-	if (TYPES[0] == CatNumN){
+	if (TYPES[0] == TypeNum){
 		LenTypeA[0] = 0 + AREA[0];
 		SumTypeA[0] = 0 + CORRMEAN[0] * AREA[0];
 		TypeA[0] = 0 + CORRMEAN[0];
@@ -95,7 +99,7 @@ macro "Calculate Ratios" {
 		typeflag = 1;
 		}
 	// Stores values in the first per-image slot if the ROI in the current line is #B
-	if (TYPES[0] == CatDenN) {
+	if (TYPES[0] == TypeDen) {
 		LenTypeB[0] = 0 + AREA[0];
 		SumTypeB[0] = 0 + CORRMEAN[0] * AREA[0];
 		TypeB[0] = 0 + CORRMEAN[0];
@@ -112,14 +116,14 @@ macro "Calculate Ratios" {
 			Names[UIndex] = IMAGENAMES[j];
 		}
 		// Stores values in the current per-image slot if the ROI in the current line is #A
-		if (TYPES[j] == CatNumN) {
+		if (TYPES[j] == TypeNum) {
 			LenTypeA[UIndex] = LenTypeA[UIndex] + AREA[j];
 			SumTypeA[UIndex] = SumTypeA[UIndex] + CORRMEAN[j] * AREA[j];
 			TypeA[UIndex] = TypeA[UIndex] + CORRMEAN[j];
 			NTypeA[UIndex] = NTypeA[UIndex] + 1;
 		}
 		// Stores values in the current per-image slot if the ROI in the current line is #B
-		if (TYPES[j] == CatDenN) {
+		if (TYPES[j] == TypeDen) {
 			LenTypeB[UIndex] = LenTypeB[UIndex] + AREA[j];
 			SumTypeB[UIndex] = SumTypeB[UIndex] + CORRMEAN[j] * AREA[j];
 			TypeB[UIndex] = TypeB[UIndex] + CORRMEAN[j];
@@ -150,7 +154,7 @@ macro "Calculate Ratios" {
 	}
 
 // Generate the Ratios table
-	title1 = RName + " (" + CatNum + "/" + CatDen + ") ratios";
+	title1 = RName + " (" + TypeNum + "-" + CatNum + "/" + TypeDen + "-" +  CatDen + ") ratios";
 	title2 = "[" + title1 + "]";
 	f = title2;
 	if (isOpen(title1))
@@ -184,19 +188,24 @@ function getColumn(TableString, Header, sepa) {
 	return Column;
 }
 
-
-// This function returns the number of unique elements in a sorted array
-function getUnique(SortedArray) {
-	Array.sort(SortedArray);
-	DiffNumber = 1;
-	for (i = 1; i < SortedArray.length; i++) {
-		if (SortedArray[i] != SortedArray[i - 1]) {
-			DiffNumber = DiffNumber + 1;
+// This function returns an array of unique elements from an unsorted array
+function getUniqueA(unsortedArray) {
+	
+	uniqueArray = newArray(1);
+	uniqueArray[0] = unsortedArray[0];
+	ui = 1;	
+	
+	for (ua = 1; ua < unsortedArray.length; ua++) {
+		if (unsortedArray[ua] != unsortedArray[ua - 1] && getIndex(uniqueArray, unsortedArray[ua]) < 0) {
+			uniqueArray[ui] = unsortedArray[ua];
+			ui++;
 		}
 	}
-	return DiffNumber;
+	return uniqueArray;
+
 }
 
+// This function returns the index of an element in an array
 function getIndex(array, el) {
 	for (i = 0; i < array.length; i++) {
 		if (array[i] == el) return i;
