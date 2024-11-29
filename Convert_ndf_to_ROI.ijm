@@ -112,10 +112,10 @@ macro "Convert_ndf_to_ROI" {
 
 		// Get .ndf file name
 		if (allSlice == 1)
-			ndfName = getInfo("slice.label"); // strange bug in single-image case, there is .ndf already in the name
+			ndfName = Property.getSliceLabel; // strange bug in single-image case, there is .ndf already in the name
 		else {
-			imageName = getInfo("slice.label");
-			ndfName = imageName+".ndf";
+			imageName = Property.getSliceLabel;
+			ndfName = replace(imageName, ".tif", ".ndf");
 		}
 
 		// Log
